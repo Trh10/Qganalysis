@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QG Analysis – Administration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1a1d28;
+            color: #fff;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        /* ===== LOGIN ===== */
+        .login-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-card {
+            background: #23263a;
+            border-radius: 16px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 32px;
+            line-height: 1;
+        }
+        .login-logo .logo-mark {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.05rem;
+            font-weight: 800;
+            letter-spacing: -0.08em;
+            color: #dc002e;
+        }
+        .login-logo .logo-word {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.16rem;
+            font-weight: 300;
+            letter-spacing: 0.28em;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        .login-card h2 {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 28px;
+            color: #ccc;
+        }
+        .login-field {
+            margin-bottom: 18px;
+        }
+        .login-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #aaa;
+        }
+        .login-field input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #3a3d50;
+            border-radius: 8px;
+            background: #1a1d28;
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+        .login-field input:focus {
+            outline: none;
+            border-color: #dc002e;
+        }
+        .login-error {
+            display: none;
+            color: #dc002e;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #dc002e;
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-btn:hover { background: #b50025; }
+        .login-back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #888;
+            transition: color 0.3s;
+        }
+        .login-back:hover { color: #dc002e; }
+
+        /* ===== ADMIN DASHBOARD ===== */
+        .admin-wrapper { display: none; }
+        .admin-header {
+            background: #23263a;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #2e3148;
+        }
+        .admin-header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1;
+        }
+        .admin-header-logo .logo-mark {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.08em;
+            color: #dc002e;
+        }
+        .admin-header-logo .logo-word {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 300;
+            letter-spacing: 0.28em;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        .admin-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .admin-user {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .admin-logout {
+            padding: 8px 18px;
+            border: 1px solid #dc002e;
+            border-radius: 6px;
+            color: #dc002e;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: none;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+        }
+        .admin-logout:hover {
+            background: #dc002e;
+            color: #fff;
+        }
+        .admin-body {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .admin-body h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #2e3148;
+            padding-bottom: 0;
+        }
+        .admin-tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            color: #888;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .admin-tab:hover { color: #fff; }
+        .admin-tab.active {
+            color: #dc002e;
+            border-bottom-color: #dc002e;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Form */
+        .article-form {
+            background: #23263a;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 36px;
+        }
+        .article-form h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #dc002e;
+        }
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+        .form-row .field { flex: 1; }
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .field input,
+        .field textarea,
+        .field select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #3a3d50;
+            border-radius: 8px;
+            background: #1a1d28;
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+        .field input:focus,
+        .field textarea:focus,
+        .field select:focus {
+            outline: none;
+            border-color: #dc002e;
+        }
+        .field textarea { resize: vertical; }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+        }
+        .btn-save {
+            padding: 10px 28px;
+            border: none;
+            border-radius: 8px;
+            background: #dc002e;
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-save:hover { background: #b50025; }
+        .btn-cancel {
+            padding: 10px 28px;
+            border: 1px solid #3a3d50;
+            border-radius: 8px;
+            background: none;
+            color: #aaa;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-cancel:hover {
+            border-color: #dc002e;
+            color: #dc002e;
+        }
+
+        /* Article list */
+        .articles-list h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #ccc;
+        }
+        .article-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #23263a;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        .article-row:hover { background: #2a2d42; }
+        .article-row-info { flex: 1; }
+        .article-row-info h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .article-row-info span {
+            font-size: 0.78rem;
+            color: #888;
+        }
+        .article-row-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-edit {
+            background: #2e3148;
+            color: #fff;
+        }
+        .btn-edit:hover { background: #3a3d55; }
+        .btn-delete {
+            background: #3a1520;
+            color: #dc002e;
+        }
+        .btn-delete:hover { background: #4a1a28; }
+        .no-articles {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 40px 0;
+        }
+
+        /* Image upload */
+        .img-upload-zone {
+            border: 2px dashed #3a3d50;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .img-upload-zone:hover { border-color: #dc002e; }
+        .img-upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .img-upload-zone .upload-placeholder {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        .img-upload-zone .upload-placeholder i {
+            font-size: 1.8rem;
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .img-preview {
+            margin-top: 12px;
+            display: none;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            max-width: 280px;
+        }
+        .img-preview img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+        }
+        .img-preview .img-remove {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(220,0,46,0.9);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .article-row-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+        .article-row-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            background: #2e3148;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 14px;
+            flex-shrink: 0;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 600px) {
+            .login-card { padding: 36px 24px; }
+            .admin-header { padding: 14px 20px; }
+            .admin-body { padding: 24px 16px; }
+            .form-row { flex-direction: column; gap: 0; }
+            .article-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div class="login-wrapper" id="loginWrapper">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="LOGO_QG2CRISES.png" alt="QG Analysis" style="height: 90px;">
+            </div>
+            <h2>Espace Administration</h2>
+            <form id="loginForm">
+                <div class="login-field">
+                    <label for="username">Identifiant</label>
+                    <input type="text" id="username" autocomplete="username" required>
+                </div>
+                <div class="login-field">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" autocomplete="current-password" required>
+                </div>
+                <div class="login-error" id="loginError">Identifiant ou mot de passe incorrect.</div>
+                <button type="submit" class="login-btn">Se connecter</button>
+            </form>
+            <a href="index.html" class="login-back"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD -->
+    <div class="admin-wrapper" id="adminWrapper">
+        <header class="admin-header">
+            <a href="index.html" class="admin-header-logo">
+                <img src="LOGO_QG2CRISES.png" alt="QG Analysis" style="height: 65px;">
+            </a>
+            <div class="admin-header-right">
+                <span class="admin-user"><i class="fas fa-user"></i> Admin</span>
+                <button class="admin-logout" id="logoutBtn">Déconnexion</button>
+            </div>
+        </header>
+
+        <div class="admin-body">
+            <!-- TABS -->
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="actualites"><i class="fas fa-newspaper"></i> Actualités</button>
+                <button class="admin-tab" data-tab="rapports"><i class="fas fa-file-lines"></i> Rapports</button>
+            </div>
+
+            <!-- ===== TAB: ACTUALITÉS ===== -->
+            <div class="tab-content active" id="tab-actualites">
+            <h1>Gestion des Actualités</h1>
+
+            <div class="article-form" id="articleForm">
+                <h3 id="formTitle"><i class="fas fa-plus"></i> Nouvel article</h3>
+                <input type="hidden" id="editId" value="">
+                <div class="form-row">
+                    <div class="field">
+                        <label for="artTitle">Titre</label>
+                        <input type="text" id="artTitle" placeholder="Titre de l'article">
+                    </div>
+                    <div class="field">
+                        <label for="artDate">Date</label>
+                        <input type="month" id="artDate">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="artDesc">Description</label>
+                    <textarea id="artDesc" rows="3" placeholder="Résumé de l'article"></textarea>
+                </div>
+                <div class="field">
+                    <label>Photo de couverture</label>
+                    <div class="img-upload-zone" id="imgUploadZone">
+                        <input type="file" id="artImage" accept="image/*">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <i class="fas fa-cloud-arrow-up"></i>
+                            Cliquez ou glissez une image ici
+                        </div>
+                    </div>
+                    <div class="img-preview" id="imgPreview">
+                        <img id="imgPreviewTag" src="" alt="Aperçu">
+                        <button type="button" class="img-remove" id="imgRemoveBtn" title="Supprimer l'image"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="artIcon">Icône (si pas de photo)</label>
+                        <select id="artIcon">
+                            <option value="fa-newspaper">📰 Journal</option>
+                            <option value="fa-chart-line">📈 Graphique</option>
+                            <option value="fa-users">👥 Personnes</option>
+                            <option value="fa-shield-halved">🛡️ Bouclier</option>
+                            <option value="fa-globe">🌍 Globe</option>
+                            <option value="fa-building">🏢 Bâtiment</option>
+                            <option value="fa-bullhorn">📢 Mégaphone</option>
+                            <option value="fa-handshake">🤝 Partenariat</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="artLink">Lien (optionnel)</label>
+                        <input type="url" id="artLink" placeholder="https://...">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-save" id="saveBtn">Enregistrer</button>
+                    <button class="btn-cancel" id="cancelBtn" style="display:none;">Annuler</button>
+                </div>
+            </div>
+
+            <div class="articles-list">
+                <h3>Articles publiés</h3>
+                <div id="articlesList"></div>
+            </div>            </div>
+
+            <!-- ===== TAB: RAPPORTS ===== -->
+            <div class="tab-content" id="tab-rapports">
+            <h1>Gestion des Rapports</h1>
+
+            <div class="article-form" id="rapportForm">
+                <h3 id="rapFormTitle"><i class="fas fa-plus"></i> Nouveau rapport</h3>
+                <input type="hidden" id="rapEditId" value="">
+                <div class="form-row">
+                    <div class="field">
+                        <label for="rapTitle">Titre</label>
+                        <input type="text" id="rapTitle" placeholder="Titre du rapport">
+                    </div>
+                    <div class="field">
+                        <label for="rapDate">Date</label>
+                        <input type="month" id="rapDate">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="rapDesc">Description</label>
+                    <textarea id="rapDesc" rows="3" placeholder="Résumé du rapport"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="rapFrequency">Fréquence</label>
+                        <select id="rapFrequency">
+                            <option value="semaine">Hebdomadaire</option>
+                            <option value="mois">Mensuel</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>&nbsp;</label>
+                        <div>&nbsp;</div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Photo de couverture</label>
+                    <div class="img-upload-zone" id="rapImgUploadZone">
+                        <input type="file" id="rapImage" accept="image/*">
+                        <div class="upload-placeholder" id="rapUploadPlaceholder">
+                            <i class="fas fa-cloud-arrow-up"></i>
+                            Cliquez ou glissez une image ici
+                        </div>
+                    </div>
+                    <div class="img-preview" id="rapImgPreview">
+                        <img id="rapImgPreviewTag" src="" alt="Aperçu">
+                        <button type="button" class="img-remove" id="rapImgRemoveBtn" title="Supprimer l'image"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-save" id="rapSaveBtn">Enregistrer</button>
+                    <button class="btn-cancel" id="rapCancelBtn" style="display:none;">Annuler</button>
+                </div>
+            </div>
+
+            <div class="articles-list">
+                <h3>Rapports publiés</h3>
+                <div id="rapportsList"></div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CREDENTIALS (client-side only) =====
+        const VALID_USER = 'qganalysis';
+        const VALID_PASS = 'admin1';
+        const SESSION_KEY = 'qg_admin_session';
+        const ARTICLES_KEY = 'qg_articles';
+        const RAPPORTS_KEY = 'qg_rapports';
+
+        // ===== DEFAULT ARTICLES =====
+        const DEFAULT_ARTICLES = [
+            {
+                id: '1',
+                title: "L'importance de l'analyse stratégique en temps de crise",
+                date: '2026-01',
+                description: "Découvrez comment une veille stratégique adaptée permet de mieux anticiper les situations complexes.",
+                icon: 'fa-newspaper',
+                link: ''
+            },
+            {
+                id: '2',
+                title: 'Les tendances de la communication de crise en 2026',
+                date: '2025-12',
+                description: "Les nouvelles approches et méthodologies qui transforment la gestion de crise contemporaine.",
+                icon: 'fa-chart-line',
+                link: ''
+            },
+            {
+                id: '3',
+                title: 'QG Analysis accompagne un grand groupe industriel',
+                date: '2025-11',
+                description: "Retour sur notre accompagnement stratégique lors d'une restructuration majeure.",
+                icon: 'fa-users',
+                link: ''
+            }
+        ];
+
+        // ===== HELPERS =====
+        function getArticles() {
+            const stored = localStorage.getItem(ARTICLES_KEY);
+            if (!stored) {
+                localStorage.setItem(ARTICLES_KEY, JSON.stringify(DEFAULT_ARTICLES));
+                return DEFAULT_ARTICLES;
+            }
+            return JSON.parse(stored);
+        }
+
+        function saveArticles(articles) {
+            localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+            const [year, month] = dateStr.split('-');
+            return months[parseInt(month, 10) - 1] + ' ' + year;
+        }
+
+        // ===== LOGIN =====
+        const loginWrapper = document.getElementById('loginWrapper');
+        const adminWrapper = document.getElementById('adminWrapper');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+
+        function showAdmin() {
+            loginWrapper.style.display = 'none';
+            adminWrapper.style.display = 'block';
+            renderArticles();
+            renderRapports();
+        }
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+            if (user === VALID_USER && pass === VALID_PASS) {
+                sessionStorage.setItem(SESSION_KEY, 'true');
+                loginError.style.display = 'none';
+                showAdmin();
+            } else {
+                loginError.style.display = 'block';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            sessionStorage.removeItem(SESSION_KEY);
+            loginWrapper.style.display = 'flex';
+            adminWrapper.style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        });
+
+        // ===== ARTICLE MANAGEMENT =====
+        const articlesList = document.getElementById('articlesList');
+        const editIdInput = document.getElementById('editId');
+        const formTitle = document.getElementById('formTitle');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        var currentImageData = '';
+
+        // Image upload handling
+        var artImageInput = document.getElementById('artImage');
+        var imgPreview = document.getElementById('imgPreview');
+        var imgPreviewTag = document.getElementById('imgPreviewTag');
+        var imgRemoveBtn = document.getElementById('imgRemoveBtn');
+        var uploadPlaceholder = document.getElementById('uploadPlaceholder');
+
+        function resizeImage(file, maxW, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var w = img.width, h = img.height;
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    callback(canvas.toDataURL('image/jpeg', 0.75));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        artImageInput.addEventListener('change', function() {
+            var file = this.files[0];
+            if (!file) return;
+            resizeImage(file, 800, function(dataUrl) {
+                currentImageData = dataUrl;
+                imgPreviewTag.src = dataUrl;
+                imgPreview.style.display = 'block';
+                uploadPlaceholder.style.display = 'none';
+            });
+        });
+
+        imgRemoveBtn.addEventListener('click', function() {
+            currentImageData = '';
+            imgPreviewTag.src = '';
+            imgPreview.style.display = 'none';
+            uploadPlaceholder.style.display = 'block';
+            artImageInput.value = '';
+        });
+
+        function renderArticles() {
+            const articles = getArticles();
+            if (articles.length === 0) {
+                articlesList.innerHTML = '<div class="no-articles">Aucun article pour le moment.</div>';
+                return;
+            }
+            articlesList.innerHTML = articles.map(function(a) {
+                var thumbHtml = a.image
+                    ? '<img class="article-row-thumb" src="' + a.image + '" alt="">'
+                    : '<div class="article-row-icon"><i class="fas ' + escapeHtml(a.icon) + '"></i></div>';
+                return '<div class="article-row" data-id="' + a.id + '">' +
+                    thumbHtml +
+                    '<div class="article-row-info">' +
+                        '<h4>' + escapeHtml(a.title) + '</h4>' +
+                        '<span>' + formatDate(a.date) + '</span>' +
+                    '</div>' +
+                    '<div class="article-row-actions">' +
+                        '<button class="btn-icon btn-edit" title="Modifier" onclick="editArticle(\'' + a.id + '\')"><i class="fas fa-pen"></i></button>' +
+                        '<button class="btn-icon btn-delete" title="Supprimer" onclick="deleteArticle(\'' + a.id + '\')"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        document.getElementById('saveBtn').addEventListener('click', function() {
+            var title = document.getElementById('artTitle').value.trim();
+            var date = document.getElementById('artDate').value;
+            var desc = document.getElementById('artDesc').value.trim();
+            var icon = document.getElementById('artIcon').value;
+            var link = document.getElementById('artLink').value.trim();
+            var editId = editIdInput.value;
+
+            if (!title || !date || !desc) {
+                alert('Veuillez remplir le titre, la date et la description.');
+                return;
+            }
+
+            var image = currentImageData;
+            var articles = getArticles();
+
+            if (editId) {
+                articles = articles.map(function(a) {
+                    if (a.id === editId) {
+                        return { id: a.id, title: title, date: date, description: desc, icon: icon, link: link, image: image || a.image || '' };
+                    }
+                    return a;
+                });
+            } else {
+                articles.unshift({
+                    id: Date.now().toString(),
+                    title: title,
+                    date: date,
+                    description: desc,
+                    icon: icon,
+                    link: link,
+                    image: image
+                });
+            }
+
+            saveArticles(articles);
+            clearForm();
+            renderArticles();
+        });
+
+        window.editArticle = function(id) {
+            var articles = getArticles();
+            var article = articles.find(function(a) { return a.id === id; });
+            if (!article) return;
+
+            document.getElementById('artTitle').value = article.title;
+            document.getElementById('artDate').value = article.date;
+            document.getElementById('artDesc').value = article.description;
+            document.getElementById('artIcon').value = article.icon;
+            document.getElementById('artLink').value = article.link || '';
+            editIdInput.value = article.id;
+            // Restore image preview
+            if (article.image) {
+                currentImageData = article.image;
+                imgPreviewTag.src = article.image;
+                imgPreview.style.display = 'block';
+                uploadPlaceholder.style.display = 'none';
+            } else {
+                currentImageData = '';
+                imgPreviewTag.src = '';
+                imgPreview.style.display = 'none';
+                uploadPlaceholder.style.display = 'block';
+            }
+            formTitle.innerHTML = '<i class="fas fa-pen"></i> Modifier l\'article';
+            cancelBtn.style.display = 'inline-block';
+            document.getElementById('articleForm').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.deleteArticle = function(id) {
+            if (!confirm('Supprimer cet article ?')) return;
+            var articles = getArticles().filter(function(a) { return a.id !== id; });
+            saveArticles(articles);
+            renderArticles();
+        };
+
+        function clearForm() {
+            document.getElementById('artTitle').value = '';
+            document.getElementById('artDate').value = '';
+            document.getElementById('artDesc').value = '';
+            document.getElementById('artIcon').value = 'fa-newspaper';
+            document.getElementById('artLink').value = '';
+            editIdInput.value = '';
+            currentImageData = '';
+            artImageInput.value = '';
+            imgPreviewTag.src = '';
+            imgPreview.style.display = 'none';
+            uploadPlaceholder.style.display = 'block';
+            formTitle.innerHTML = '<i class="fas fa-plus"></i> Nouvel article';
+            cancelBtn.style.display = 'none';
+        }
+
+        cancelBtn.addEventListener('click', clearForm);
+
+        // ===== TABS =====
+        document.querySelectorAll('.admin-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.admin-tab').forEach(function(t) { t.classList.remove('active'); });
+                document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.getAttribute('data-tab')).classList.add('active');
+            });
+        });
+
+        // ===== RAPPORTS MANAGEMENT =====
+        var rapCurrentImageData = '';
+
+        function getRapports() {
+            var stored = localStorage.getItem(RAPPORTS_KEY);
+            if (!stored) return [];
+            return JSON.parse(stored);
+        }
+
+        function saveRapports(rapports) {
+            localStorage.setItem(RAPPORTS_KEY, JSON.stringify(rapports));
+        }
+
+        var rapportsList = document.getElementById('rapportsList');
+        var rapEditIdInput = document.getElementById('rapEditId');
+        var rapFormTitle = document.getElementById('rapFormTitle');
+        var rapCancelBtn = document.getElementById('rapCancelBtn');
+        var rapImageInput = document.getElementById('rapImage');
+        var rapImgPreview = document.getElementById('rapImgPreview');
+        var rapImgPreviewTag = document.getElementById('rapImgPreviewTag');
+        var rapImgRemoveBtn = document.getElementById('rapImgRemoveBtn');
+        var rapUploadPlaceholder = document.getElementById('rapUploadPlaceholder');
+
+        rapImageInput.addEventListener('change', function() {
+            var file = this.files[0];
+            if (!file) return;
+            resizeImage(file, 800, function(dataUrl) {
+                rapCurrentImageData = dataUrl;
+                rapImgPreviewTag.src = dataUrl;
+                rapImgPreview.style.display = 'block';
+                rapUploadPlaceholder.style.display = 'none';
+            });
+        });
+
+        rapImgRemoveBtn.addEventListener('click', function() {
+            rapCurrentImageData = '';
+            rapImgPreviewTag.src = '';
+            rapImgPreview.style.display = 'none';
+            rapUploadPlaceholder.style.display = 'block';
+            rapImageInput.value = '';
+        });
+
+        function renderRapports() {
+            var rapports = getRapports();
+            if (rapports.length === 0) {
+                rapportsList.innerHTML = '<div class="no-articles">Aucun rapport pour le moment.</div>';
+                return;
+            }
+            var freqLabels = { semaine: 'Hebdo', mois: 'Mensuel', autre: 'Autre' };
+            rapportsList.innerHTML = rapports.map(function(r) {
+                var thumbHtml = r.image
+                    ? '<img class="article-row-thumb" src="' + r.image + '" alt="">'
+                    : '<div class="article-row-icon"><i class="fas fa-file-lines"></i></div>';
+                return '<div class="article-row" data-id="' + r.id + '">' +
+                    thumbHtml +
+                    '<div class="article-row-info">' +
+                        '<h4>' + escapeHtml(r.title) + '</h4>' +
+                        '<span>' + formatDate(r.date) + ' · ' + (freqLabels[r.frequency] || '') + '</span>' +
+                    '</div>' +
+                    '<div class="article-row-actions">' +
+                        '<button class="btn-icon btn-edit" title="Modifier" onclick="editRapport(\'' + r.id + '\')"><i class="fas fa-pen"></i></button>' +
+                        '<button class="btn-icon btn-delete" title="Supprimer" onclick="deleteRapport(\'' + r.id + '\')"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        document.getElementById('rapSaveBtn').addEventListener('click', function() {
+            var title = document.getElementById('rapTitle').value.trim();
+            var date = document.getElementById('rapDate').value;
+            var desc = document.getElementById('rapDesc').value.trim();
+            var frequency = document.getElementById('rapFrequency').value;
+            var editId = rapEditIdInput.value;
+
+            if (!title || !date || !desc) {
+                alert('Veuillez remplir le titre, la date et la description.');
+                return;
+            }
+
+            var image = rapCurrentImageData;
+            var rapports = getRapports();
+
+            if (editId) {
+                rapports = rapports.map(function(r) {
+                    if (r.id === editId) {
+                        return { id: r.id, title: title, date: date, description: desc, frequency: frequency, image: image || r.image || '' };
+                    }
+                    return r;
+                });
+            } else {
+                rapports.unshift({
+                    id: Date.now().toString(),
+                    title: title,
+                    date: date,
+                    description: desc,
+                    frequency: frequency,
+                    image: image
+                });
+            }
+
+            saveRapports(rapports);
+            clearRapportForm();
+            renderRapports();
+        });
+
+        window.editRapport = function(id) {
+            var rapports = getRapports();
+            var rapport = rapports.find(function(r) { return r.id === id; });
+            if (!rapport) return;
+
+            document.getElementById('rapTitle').value = rapport.title;
+            document.getElementById('rapDate').value = rapport.date;
+            document.getElementById('rapDesc').value = rapport.description;
+            document.getElementById('rapFrequency').value = rapport.frequency;
+            rapEditIdInput.value = rapport.id;
+            if (rapport.image) {
+                rapCurrentImageData = rapport.image;
+                rapImgPreviewTag.src = rapport.image;
+                rapImgPreview.style.display = 'block';
+                rapUploadPlaceholder.style.display = 'none';
+            } else {
+                rapCurrentImageData = '';
+                rapImgPreviewTag.src = '';
+                rapImgPreview.style.display = 'none';
+                rapUploadPlaceholder.style.display = 'block';
+            }
+            rapFormTitle.innerHTML = '<i class="fas fa-pen"></i> Modifier le rapport';
+            rapCancelBtn.style.display = 'inline-block';
+            document.getElementById('rapportForm').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.deleteRapport = function(id) {
+            if (!confirm('Supprimer ce rapport ?')) return;
+            var rapports = getRapports().filter(function(r) { return r.id !== id; });
+            saveRapports(rapports);
+            renderRapports();
+        };
+
+        function clearRapportForm() {
+            document.getElementById('rapTitle').value = '';
+            document.getElementById('rapDate').value = '';
+            document.getElementById('rapDesc').value = '';
+            document.getElementById('rapFrequency').value = 'semaine';
+            rapEditIdInput.value = '';
+            rapCurrentImageData = '';
+            rapImageInput.value = '';
+            rapImgPreviewTag.src = '';
+            rapImgPreview.style.display = 'none';
+            rapUploadPlaceholder.style.display = 'block';
+            rapFormTitle.innerHTML = '<i class="fas fa-plus"></i> Nouveau rapport';
+            rapCancelBtn.style.display = 'none';
+        }
+
+        rapCancelBtn.addEventListener('click', clearRapportForm);
+
+        // Check session (must be after all DOM elements and handlers are initialized)
+        if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+            showAdmin();
+        }
+    </script>
+
+</body>
+</html>
