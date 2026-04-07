@@ -325,6 +325,55 @@ a {
     transform: translateY(-1px);
 }
 
+/* ===== LANGUAGE SWITCHER ===== */
+.lang-switcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    padding-left: 16px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.lang-btn {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid transparent;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.lang-btn:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.lang-btn.active {
+    background: #c5092c;
+    color: #fff;
+    border-color: #c5092c;
+}
+
+/* RTL support */
+[dir="rtl"] .section-apropos,
+[dir="rtl"] .section-metiers,
+[dir="rtl"] .section-contact,
+[dir="rtl"] .section-cta,
+[dir="rtl"] .footer {
+    text-align: right;
+}
+
+[dir="rtl"] .apropos-heading::after {
+    left: auto;
+    right: 0;
+}
+
 /* Menu Toggle */
 .menu-toggle {
     display: none;
@@ -786,6 +835,30 @@ a {
     height: 3px;
     background: #c5092c;
     border-radius: 2px;
+}
+
+.apropos-block-mission {
+    position: relative;
+    padding: 50px 40px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.apropos-block-mission::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('carte afrique.png') center center / cover no-repeat;
+    opacity: 0.08;
+    z-index: 0;
+}
+
+.apropos-block-mission > * {
+    position: relative;
+    z-index: 1;
 }
 
 .apropos-mission-text {
@@ -2014,6 +2087,13 @@ a {
 
     .btn-hotline {
         display: none;
+    }
+
+    .lang-switcher {
+        border-left: none;
+        margin-left: 0;
+        padding-left: 0;
+        justify-content: center;
     }
 
     .dropdown-menu {
