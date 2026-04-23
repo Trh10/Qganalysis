@@ -441,6 +441,57 @@
             font-size: 1.1rem;
         }
 
+        /* PDF upload */
+        .pdf-upload-zone {
+            border: 2px dashed #3a3d50;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .pdf-upload-zone:hover { border-color: #dc002e; }
+        .pdf-upload-zone input[type="file"] {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer;
+        }
+        .pdf-upload-zone .pdf-placeholder {
+            color: #666; font-size: 0.85rem;
+        }
+        .pdf-upload-zone .pdf-placeholder i {
+            font-size: 1.6rem; display: block; margin-bottom: 6px; color: #c00; 
+        }
+        .pdf-info {
+            display: none;
+            margin-top: 10px;
+            background: #2e3148;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 0.85rem;
+            align-items: center;
+            gap: 12px;
+        }
+        .pdf-info.show { display: flex; }
+        .pdf-info i.fa-file-pdf { color: #dc002e; font-size: 1.4rem; }
+        .pdf-info .pdf-name { flex: 1; word-break: break-all; }
+        .pdf-info .pdf-remove {
+            background: rgba(220,0,46,0.85); color: #fff; border: none;
+            width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pdf-badge {
+            display: inline-block;
+            background: #dc002e;
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+            font-weight: 600;
+        }
+
         @media (max-width: 600px) {
             .login-card { padding: 36px 24px; }
             .admin-header { padding: 14px 20px; }
@@ -529,6 +580,21 @@
                         <button type="button" class="img-remove" id="imgRemoveBtn" title="Supprimer l'image"><i class="fas fa-xmark"></i></button>
                     </div>
                 </div>
+                <div class="field">
+                    <label>Fichier PDF (optionnel) — l'article s'affichera sur le site avec le PDF intégré</label>
+                    <div class="pdf-upload-zone" id="pdfUploadZone">
+                        <input type="file" id="artPdf" accept="application/pdf">
+                        <div class="pdf-placeholder" id="pdfPlaceholder">
+                            <i class="fas fa-file-pdf"></i>
+                            Cliquez ou glissez un PDF ici
+                        </div>
+                    </div>
+                    <div class="pdf-info" id="pdfInfo">
+                        <i class="fas fa-file-pdf"></i>
+                        <span class="pdf-name" id="pdfName"></span>
+                        <button type="button" class="pdf-remove" id="pdfRemoveBtn" title="Retirer"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
                 <div class="form-row">
                     <div class="field">
                         <label for="artIcon">Icône (si pas de photo)</label>
@@ -608,6 +674,21 @@
                         <button type="button" class="img-remove" id="rapImgRemoveBtn" title="Supprimer l'image"><i class="fas fa-xmark"></i></button>
                     </div>
                 </div>
+                <div class="field">
+                    <label>Fichier PDF (optionnel) — le rapport s'affichera sur le site avec le PDF intégré</label>
+                    <div class="pdf-upload-zone" id="rapPdfUploadZone">
+                        <input type="file" id="rapPdf" accept="application/pdf">
+                        <div class="pdf-placeholder" id="rapPdfPlaceholder">
+                            <i class="fas fa-file-pdf"></i>
+                            Cliquez ou glissez un PDF ici
+                        </div>
+                    </div>
+                    <div class="pdf-info" id="rapPdfInfo">
+                        <i class="fas fa-file-pdf"></i>
+                        <span class="pdf-name" id="rapPdfName"></span>
+                        <button type="button" class="pdf-remove" id="rapPdfRemoveBtn" title="Retirer"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
                 <div class="form-actions">
                     <button class="btn-save" id="rapSaveBtn">Enregistrer</button>
                     <button class="btn-cancel" id="rapCancelBtn" style="display:none;">Annuler</button>
@@ -669,7 +750,12 @@
         }
 
         function saveArticles(articles) {
-            localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
+            try {
+                localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
+            } catch (e) {
+                alert('Stockage du navigateur plein. Le PDF est probablement trop lourd. Compressez-le (4 Mo max recommandé) ou supprimez d\'anciens articles.');
+                throw e;
+            }
         }
 
         function formatDate(dateStr) {
@@ -720,6 +806,21 @@
         const cancelBtn = document.getElementById('cancelBtn');
 
         var currentImageData = '';
+        var currentPdfData = '';
+        var currentPdfName = '';
+
+        // PDF upload helper (shared)
+        var MAX_PDF_BYTES = 4.5 * 1024 * 1024; // ~4.5 MB safety limit for localStorage
+        function readPdfAsDataUrl(file, onOk) {
+            if (file.type !== 'application/pdf') { alert('Le fichier doit être un PDF.'); return; }
+            if (file.size > MAX_PDF_BYTES) {
+                alert('Le PDF est trop lourd (' + (file.size/1024/1024).toFixed(1) + ' Mo). Maximum recommandé : 4 Mo. Compressez-le (ex: ilovepdf.com/fr/compresser_pdf) puis réessayez.');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function(e) { onOk(e.target.result, file.name); };
+            reader.readAsDataURL(file);
+        }
 
         // Image upload handling
         var artImageInput = document.getElementById('artImage');
@@ -764,6 +865,32 @@
             artImageInput.value = '';
         });
 
+        // PDF upload (article)
+        var artPdfInput = document.getElementById('artPdf');
+        var pdfInfo = document.getElementById('pdfInfo');
+        var pdfName = document.getElementById('pdfName');
+        var pdfPlaceholder = document.getElementById('pdfPlaceholder');
+        var pdfRemoveBtn = document.getElementById('pdfRemoveBtn');
+
+        artPdfInput.addEventListener('change', function() {
+            var file = this.files[0];
+            if (!file) return;
+            readPdfAsDataUrl(file, function(dataUrl, name) {
+                currentPdfData = dataUrl;
+                currentPdfName = name;
+                pdfName.textContent = name;
+                pdfInfo.classList.add('show');
+                pdfPlaceholder.style.display = 'none';
+            });
+        });
+        pdfRemoveBtn.addEventListener('click', function() {
+            currentPdfData = '';
+            currentPdfName = '';
+            pdfInfo.classList.remove('show');
+            pdfPlaceholder.style.display = 'block';
+            artPdfInput.value = '';
+        });
+
         function renderArticles() {
             const articles = getArticles();
             if (articles.length === 0) {
@@ -774,10 +901,11 @@
                 var thumbHtml = a.image
                     ? '<img class="article-row-thumb" src="' + a.image + '" alt="">'
                     : '<div class="article-row-icon"><i class="fas ' + escapeHtml(a.icon) + '"></i></div>';
+                var pdfBadge = a.pdf ? '<span class="pdf-badge"><i class="fas fa-file-pdf"></i> PDF</span>' : '';
                 return '<div class="article-row" data-id="' + a.id + '">' +
                     thumbHtml +
                     '<div class="article-row-info">' +
-                        '<h4>' + escapeHtml(a.title) + '</h4>' +
+                        '<h4>' + escapeHtml(a.title) + pdfBadge + '</h4>' +
                         '<span>' + formatDate(a.date) + '</span>' +
                     '</div>' +
                     '<div class="article-row-actions">' +
@@ -813,7 +941,7 @@
             if (editId) {
                 articles = articles.map(function(a) {
                     if (a.id === editId) {
-                        return { id: a.id, title: title, date: date, description: desc, icon: icon, link: link, image: image || a.image || '' };
+                        return { id: a.id, title: title, date: date, description: desc, icon: icon, link: link, image: image || a.image || '', pdf: currentPdfData || a.pdf || '', pdfName: currentPdfName || a.pdfName || '' };
                     }
                     return a;
                 });
@@ -825,7 +953,9 @@
                     description: desc,
                     icon: icon,
                     link: link,
-                    image: image
+                    image: image,
+                    pdf: currentPdfData,
+                    pdfName: currentPdfName
                 });
             }
 
@@ -857,6 +987,19 @@
                 imgPreview.style.display = 'none';
                 uploadPlaceholder.style.display = 'block';
             }
+            // Restore PDF
+            if (article.pdf) {
+                currentPdfData = article.pdf;
+                currentPdfName = article.pdfName || 'document.pdf';
+                pdfName.textContent = currentPdfName;
+                pdfInfo.classList.add('show');
+                pdfPlaceholder.style.display = 'none';
+            } else {
+                currentPdfData = '';
+                currentPdfName = '';
+                pdfInfo.classList.remove('show');
+                pdfPlaceholder.style.display = 'block';
+            }
             formTitle.innerHTML = '<i class="fas fa-pen"></i> Modifier l\'article';
             cancelBtn.style.display = 'inline-block';
             document.getElementById('articleForm').scrollIntoView({ behavior: 'smooth' });
@@ -881,6 +1024,11 @@
             imgPreviewTag.src = '';
             imgPreview.style.display = 'none';
             uploadPlaceholder.style.display = 'block';
+            currentPdfData = '';
+            currentPdfName = '';
+            artPdfInput.value = '';
+            pdfInfo.classList.remove('show');
+            pdfPlaceholder.style.display = 'block';
             formTitle.innerHTML = '<i class="fas fa-plus"></i> Nouvel article';
             cancelBtn.style.display = 'none';
         }
@@ -899,6 +1047,8 @@
 
         // ===== RAPPORTS MANAGEMENT =====
         var rapCurrentImageData = '';
+        var rapCurrentPdfData = '';
+        var rapCurrentPdfName = '';
 
         function getRapports() {
             var stored = localStorage.getItem(RAPPORTS_KEY);
@@ -907,7 +1057,12 @@
         }
 
         function saveRapports(rapports) {
-            localStorage.setItem(RAPPORTS_KEY, JSON.stringify(rapports));
+            try {
+                localStorage.setItem(RAPPORTS_KEY, JSON.stringify(rapports));
+            } catch (e) {
+                alert('Stockage du navigateur plein. Le PDF est probablement trop lourd. Compressez-le (4 Mo max recommandé) ou supprimez d\'anciens rapports.');
+                throw e;
+            }
         }
 
         var rapportsList = document.getElementById('rapportsList');
@@ -939,6 +1094,32 @@
             rapImageInput.value = '';
         });
 
+        // PDF upload (rapport)
+        var rapPdfInput = document.getElementById('rapPdf');
+        var rapPdfInfo = document.getElementById('rapPdfInfo');
+        var rapPdfName = document.getElementById('rapPdfName');
+        var rapPdfPlaceholder = document.getElementById('rapPdfPlaceholder');
+        var rapPdfRemoveBtn = document.getElementById('rapPdfRemoveBtn');
+
+        rapPdfInput.addEventListener('change', function() {
+            var file = this.files[0];
+            if (!file) return;
+            readPdfAsDataUrl(file, function(dataUrl, name) {
+                rapCurrentPdfData = dataUrl;
+                rapCurrentPdfName = name;
+                rapPdfName.textContent = name;
+                rapPdfInfo.classList.add('show');
+                rapPdfPlaceholder.style.display = 'none';
+            });
+        });
+        rapPdfRemoveBtn.addEventListener('click', function() {
+            rapCurrentPdfData = '';
+            rapCurrentPdfName = '';
+            rapPdfInfo.classList.remove('show');
+            rapPdfPlaceholder.style.display = 'block';
+            rapPdfInput.value = '';
+        });
+
         function renderRapports() {
             var rapports = getRapports();
             if (rapports.length === 0) {
@@ -950,10 +1131,11 @@
                 var thumbHtml = r.image
                     ? '<img class="article-row-thumb" src="' + r.image + '" alt="">'
                     : '<div class="article-row-icon"><i class="fas fa-file-lines"></i></div>';
+                var pdfBadge = r.pdf ? '<span class="pdf-badge"><i class="fas fa-file-pdf"></i> PDF</span>' : '';
                 return '<div class="article-row" data-id="' + r.id + '">' +
                     thumbHtml +
                     '<div class="article-row-info">' +
-                        '<h4>' + escapeHtml(r.title) + '</h4>' +
+                        '<h4>' + escapeHtml(r.title) + pdfBadge + '</h4>' +
                         '<span>' + formatDate(r.date) + ' · ' + (freqLabels[r.frequency] || '') + '</span>' +
                     '</div>' +
                     '<div class="article-row-actions">' +
@@ -982,7 +1164,7 @@
             if (editId) {
                 rapports = rapports.map(function(r) {
                     if (r.id === editId) {
-                        return { id: r.id, title: title, date: date, description: desc, frequency: frequency, image: image || r.image || '' };
+                        return { id: r.id, title: title, date: date, description: desc, frequency: frequency, image: image || r.image || '', pdf: rapCurrentPdfData || r.pdf || '', pdfName: rapCurrentPdfName || r.pdfName || '' };
                     }
                     return r;
                 });
@@ -993,7 +1175,9 @@
                     date: date,
                     description: desc,
                     frequency: frequency,
-                    image: image
+                    image: image,
+                    pdf: rapCurrentPdfData,
+                    pdfName: rapCurrentPdfName
                 });
             }
 
@@ -1023,6 +1207,18 @@
                 rapImgPreview.style.display = 'none';
                 rapUploadPlaceholder.style.display = 'block';
             }
+            if (rapport.pdf) {
+                rapCurrentPdfData = rapport.pdf;
+                rapCurrentPdfName = rapport.pdfName || 'document.pdf';
+                rapPdfName.textContent = rapCurrentPdfName;
+                rapPdfInfo.classList.add('show');
+                rapPdfPlaceholder.style.display = 'none';
+            } else {
+                rapCurrentPdfData = '';
+                rapCurrentPdfName = '';
+                rapPdfInfo.classList.remove('show');
+                rapPdfPlaceholder.style.display = 'block';
+            }
             rapFormTitle.innerHTML = '<i class="fas fa-pen"></i> Modifier le rapport';
             rapCancelBtn.style.display = 'inline-block';
             document.getElementById('rapportForm').scrollIntoView({ behavior: 'smooth' });
@@ -1046,6 +1242,11 @@
             rapImgPreviewTag.src = '';
             rapImgPreview.style.display = 'none';
             rapUploadPlaceholder.style.display = 'block';
+            rapCurrentPdfData = '';
+            rapCurrentPdfName = '';
+            rapPdfInput.value = '';
+            rapPdfInfo.classList.remove('show');
+            rapPdfPlaceholder.style.display = 'block';
             rapFormTitle.innerHTML = '<i class="fas fa-plus"></i> Nouveau rapport';
             rapCancelBtn.style.display = 'none';
         }

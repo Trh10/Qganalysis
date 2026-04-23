@@ -643,7 +643,14 @@
             const grid = document.getElementById('actuGrid');
             if (grid && articles.length > 0) {
                 grid.innerHTML = articles.map(function(a) {
-                    const linkHref = a.link ? a.link : '#';
+                    var linkHref;
+                    if (a.pdf) {
+                        linkHref = 'viewer.html?type=article&id=' + encodeURIComponent(a.id);
+                    } else if (a.link) {
+                        linkHref = a.link;
+                    } else {
+                        linkHref = '#';
+                    }
                     const imgHtml = a.image
                         ? '<div class="actu-img"><img src="' + a.image + '" alt="' + escapeHtml(a.title) + '"></div>'
                         : '<div class="actu-img"><i class="fas ' + escapeHtml(a.icon) + '"></i></div>';
@@ -695,7 +702,9 @@
                         : '<div class="rapport-img"><i class="fas fa-file-lines"></i></div>';
                     const freqLabels = { semaine: 'Hebdomadaire', mois: 'Mensuel', autre: 'Autre' };
                     const freqLabel = freqLabels[r.frequency] || '';
-                    return '<div class="rapport-card" data-freq="' + escapeHtml(r.frequency) + '">' +
+                    var openAttr = r.pdf ? ' onclick="window.location.href=\'viewer.html?type=rapport&id=' + encodeURIComponent(r.id) + '\'" style="cursor:pointer;"' : '';
+                    var pdfLinkHtml = r.pdf ? '<a href="viewer.html?type=rapport&id=' + encodeURIComponent(r.id) + '" class="actu-link" style="margin-top:12px;display:inline-flex;align-items:center;gap:6px;color:#dc002e;font-weight:600;text-decoration:none;font-size:0.9rem;">Lire le rapport <i class="fas fa-arrow-right"></i></a>' : '';
+                    return '<div class="rapport-card" data-freq="' + escapeHtml(r.frequency) + '"' + openAttr + '>' +
                         imgHtml +
                         '<div class="rapport-body">' +
                             '<div class="rapport-meta">' +
@@ -704,6 +713,7 @@
                             '</div>' +
                             '<h3>' + escapeHtml(r.title) + '</h3>' +
                             '<p>' + escapeHtml(r.description) + '</p>' +
+                            pdfLinkHtml +
                         '</div>' +
                     '</div>';
                 }).join('');
