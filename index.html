@@ -610,14 +610,8 @@
             schemaObserver.observe(svgEl);
         }
 
-        // Load actualités from localStorage
+        // Load actualités depuis l'API
         (function() {
-            const ARTICLES_KEY = 'qg_articles';
-            const DEFAULT_ARTICLES = [
-                { id:'1', title:"L'importance de l'analyse stratégique en temps de crise", date:'2026-01', description:"Découvrez comment une veille stratégique adaptée permet de mieux anticiper les situations complexes.", icon:'fa-newspaper', link:'' },
-                { id:'2', title:'Les tendances de la communication de crise en 2026', date:'2025-12', description:"Les nouvelles approches et méthodologies qui transforment la gestion de crise contemporaine.", icon:'fa-chart-line', link:'' },
-                { id:'3', title:'QG Analysis accompagne un grand groupe industriel', date:'2025-11', description:"Retour sur notre accompagnement stratégique lors d'une restructuration majeure.", icon:'fa-users', link:'' }
-            ];
             const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
             function formatDate(d) {
@@ -627,21 +621,18 @@
             }
             function escapeHtml(s) {
                 const d = document.createElement('div');
-                d.appendChild(document.createTextNode(s));
+                d.appendChild(document.createTextNode(s == null ? '' : String(s)));
                 return d.innerHTML;
             }
 
-            let articles;
-            const stored = localStorage.getItem(ARTICLES_KEY);
-            if (stored) {
-                articles = JSON.parse(stored);
-            } else {
-                articles = DEFAULT_ARTICLES;
-                localStorage.setItem(ARTICLES_KEY, JSON.stringify(DEFAULT_ARTICLES));
-            }
-
             const grid = document.getElementById('actuGrid');
-            if (grid && articles.length > 0) {
+            if (!grid) return;
+
+            fetch('/api/articles').then(function(r) { return r.json(); }).then(function(articles) {
+                if (!articles || articles.length === 0) {
+                    grid.innerHTML = '<div class="rapports-empty" style="grid-column:1/-1;text-align:center;color:#a0a4b8;padding:40px;">Aucune actualité pour le moment.</div>';
+                    return;
+                }
                 grid.innerHTML = articles.map(function(a) {
                     var linkHref;
                     if (a.pdf) {
@@ -664,12 +655,13 @@
                         '</div>' +
                     '</div>';
                 }).join('');
-            }
+            }).catch(function() {
+                grid.innerHTML = '<div class="rapports-empty" style="grid-column:1/-1;text-align:center;color:#a0a4b8;padding:40px;">Impossible de charger les actualités.</div>';
+            });
         })();
 
-        // Load rapports from localStorage
+        // Load rapports depuis l'API
         (function() {
-            const RAPPORTS_KEY = 'qg_rapports';
             const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
             function formatDate(d) {
@@ -679,13 +671,11 @@
             }
             function escapeHtml(s) {
                 const d = document.createElement('div');
-                d.appendChild(document.createTextNode(s));
+                d.appendChild(document.createTextNode(s == null ? '' : String(s)));
                 return d.innerHTML;
             }
 
-            const stored = localStorage.getItem(RAPPORTS_KEY);
-            let rapports = stored ? JSON.parse(stored) : [];
-
+            let rapports = [];
             const grid = document.getElementById('rapportsGrid');
             const filtersEl = document.getElementById('rapportsFilters');
 
@@ -719,7 +709,12 @@
                 }).join('');
             }
 
-            renderRapports('all');
+            fetch('/api/rapports').then(function(r) { return r.json(); }).then(function(data) {
+                rapports = data || [];
+                renderRapports('all');
+            }).catch(function() {
+                if (grid) grid.innerHTML = '<div class="rapports-empty">Impossible de charger les rapports.</div>';
+            });
 
             if (filtersEl) {
                 filtersEl.addEventListener('click', function(e) {

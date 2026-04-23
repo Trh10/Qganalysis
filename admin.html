@@ -704,95 +704,75 @@
     </div>
 
     <script>
-        // ===== CREDENTIALS (client-side only) =====
-        const VALID_USER = 'qganalysis';
-        const VALID_PASS = 'admin1';
-        const SESSION_KEY = 'qg_admin_session';
-        const ARTICLES_KEY = 'qg_articles';
-        const RAPPORTS_KEY = 'qg_rapports';
-
-        // ===== DEFAULT ARTICLES =====
-        const DEFAULT_ARTICLES = [
-            {
-                id: '1',
-                title: "L'importance de l'analyse stratégique en temps de crise",
-                date: '2026-01',
-                description: "Découvrez comment une veille stratégique adaptée permet de mieux anticiper les situations complexes.",
-                icon: 'fa-newspaper',
-                link: ''
-            },
-            {
-                id: '2',
-                title: 'Les tendances de la communication de crise en 2026',
-                date: '2025-12',
-                description: "Les nouvelles approches et méthodologies qui transforment la gestion de crise contemporaine.",
-                icon: 'fa-chart-line',
-                link: ''
-            },
-            {
-                id: '3',
-                title: 'QG Analysis accompagne un grand groupe industriel',
-                date: '2025-11',
-                description: "Retour sur notre accompagnement stratégique lors d'une restructuration majeure.",
-                icon: 'fa-users',
-                link: ''
+        // ===== API HELPERS =====
+        async function api(method, url, body, isForm) {
+            var opts = { method: method, credentials: 'same-origin' };
+            if (body) {
+                if (isForm) {
+                    opts.body = body; // FormData
+                } else {
+                    opts.headers = { 'Content-Type': 'application/json' };
+                    opts.body = JSON.stringify(body);
+                }
             }
-        ];
-
-        // ===== HELPERS =====
-        function getArticles() {
-            const stored = localStorage.getItem(ARTICLES_KEY);
-            if (!stored) {
-                localStorage.setItem(ARTICLES_KEY, JSON.stringify(DEFAULT_ARTICLES));
-                return DEFAULT_ARTICLES;
+            var r = await fetch(url, opts);
+            var data = null;
+            try { data = await r.json(); } catch (e) {}
+            if (!r.ok) {
+                var msg = (data && data.error) || ('Erreur ' + r.status);
+                throw new Error(msg);
             }
-            return JSON.parse(stored);
+            return data;
         }
 
-        function saveArticles(articles) {
-            try {
-                localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
-            } catch (e) {
-                alert('Stockage du navigateur plein. Le PDF est probablement trop lourd. Compressez-le (4 Mo max recommandé) ou supprimez d\'anciens articles.');
-                throw e;
-            }
+        async function uploadFile(file) {
+            var fd = new FormData();
+            fd.append('file', file);
+            return api('POST', '/api/admin/upload', fd, true);
         }
 
         function formatDate(dateStr) {
             if (!dateStr) return '';
-            const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-            const [year, month] = dateStr.split('-');
-            return months[parseInt(month, 10) - 1] + ' ' + year;
+            var months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+            var p = dateStr.split('-');
+            return months[parseInt(p[1], 10) - 1] + ' ' + p[0];
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str == null ? '' : String(str)));
+            return div.innerHTML;
         }
 
         // ===== LOGIN =====
-        const loginWrapper = document.getElementById('loginWrapper');
-        const adminWrapper = document.getElementById('adminWrapper');
-        const loginForm = document.getElementById('loginForm');
-        const loginError = document.getElementById('loginError');
+        var loginWrapper = document.getElementById('loginWrapper');
+        var adminWrapper = document.getElementById('adminWrapper');
+        var loginForm = document.getElementById('loginForm');
+        var loginError = document.getElementById('loginError');
 
-        function showAdmin() {
+        async function showAdmin() {
             loginWrapper.style.display = 'none';
             adminWrapper.style.display = 'block';
-            renderArticles();
-            renderRapports();
+            await renderArticles();
+            await renderRapports();
         }
 
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value;
-            if (user === VALID_USER && pass === VALID_PASS) {
-                sessionStorage.setItem(SESSION_KEY, 'true');
+            var user = document.getElementById('username').value.trim();
+            var pass = document.getElementById('password').value;
+            try {
+                await api('POST', '/api/admin/login', { username: user, password: pass });
                 loginError.style.display = 'none';
                 showAdmin();
-            } else {
+            } catch (err) {
+                loginError.textContent = 'Identifiant ou mot de passe incorrect.';
                 loginError.style.display = 'block';
             }
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            sessionStorage.removeItem(SESSION_KEY);
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            try { await api('POST', '/api/admin/logout'); } catch(e) {}
             loginWrapper.style.display = 'flex';
             adminWrapper.style.display = 'none';
             document.getElementById('username').value = '';
@@ -800,65 +780,41 @@
         });
 
         // ===== ARTICLE MANAGEMENT =====
-        const articlesList = document.getElementById('articlesList');
-        const editIdInput = document.getElementById('editId');
-        const formTitle = document.getElementById('formTitle');
-        const cancelBtn = document.getElementById('cancelBtn');
+        var articlesList = document.getElementById('articlesList');
+        var editIdInput = document.getElementById('editId');
+        var formTitle = document.getElementById('formTitle');
+        var cancelBtn = document.getElementById('cancelBtn');
 
-        var currentImageData = '';
-        var currentPdfData = '';
+        var currentImageUrl = '';
+        var currentPdfUrl = '';
         var currentPdfName = '';
 
-        // PDF upload helper (shared)
-        var MAX_PDF_BYTES = 4.5 * 1024 * 1024; // ~4.5 MB safety limit for localStorage
-        function readPdfAsDataUrl(file, onOk) {
-            if (file.type !== 'application/pdf') { alert('Le fichier doit être un PDF.'); return; }
-            if (file.size > MAX_PDF_BYTES) {
-                alert('Le PDF est trop lourd (' + (file.size/1024/1024).toFixed(1) + ' Mo). Maximum recommandé : 4 Mo. Compressez-le (ex: ilovepdf.com/fr/compresser_pdf) puis réessayez.');
-                return;
-            }
-            var reader = new FileReader();
-            reader.onload = function(e) { onOk(e.target.result, file.name); };
-            reader.readAsDataURL(file);
-        }
-
-        // Image upload handling
+        // Image upload
         var artImageInput = document.getElementById('artImage');
         var imgPreview = document.getElementById('imgPreview');
         var imgPreviewTag = document.getElementById('imgPreviewTag');
         var imgRemoveBtn = document.getElementById('imgRemoveBtn');
         var uploadPlaceholder = document.getElementById('uploadPlaceholder');
 
-        function resizeImage(file, maxW, callback) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var img = new Image();
-                img.onload = function() {
-                    var w = img.width, h = img.height;
-                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-                    var canvas = document.createElement('canvas');
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    callback(canvas.toDataURL('image/jpeg', 0.75));
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        artImageInput.addEventListener('change', function() {
+        artImageInput.addEventListener('change', async function() {
             var file = this.files[0];
             if (!file) return;
-            resizeImage(file, 800, function(dataUrl) {
-                currentImageData = dataUrl;
-                imgPreviewTag.src = dataUrl;
+            uploadPlaceholder.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+            try {
+                var res = await uploadFile(file);
+                currentImageUrl = res.url;
+                imgPreviewTag.src = res.url;
                 imgPreview.style.display = 'block';
                 uploadPlaceholder.style.display = 'none';
-            });
+            } catch (err) {
+                alert('Erreur upload image : ' + err.message);
+            } finally {
+                uploadPlaceholder.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Cliquez ou glissez une image ici';
+            }
         });
 
         imgRemoveBtn.addEventListener('click', function() {
-            currentImageData = '';
+            currentImageUrl = '';
             imgPreviewTag.src = '';
             imgPreview.style.display = 'none';
             uploadPlaceholder.style.display = 'block';
@@ -868,32 +824,41 @@
         // PDF upload (article)
         var artPdfInput = document.getElementById('artPdf');
         var pdfInfo = document.getElementById('pdfInfo');
-        var pdfName = document.getElementById('pdfName');
+        var pdfNameSpan = document.getElementById('pdfName');
         var pdfPlaceholder = document.getElementById('pdfPlaceholder');
         var pdfRemoveBtn = document.getElementById('pdfRemoveBtn');
 
-        artPdfInput.addEventListener('change', function() {
+        artPdfInput.addEventListener('change', async function() {
             var file = this.files[0];
             if (!file) return;
-            readPdfAsDataUrl(file, function(dataUrl, name) {
-                currentPdfData = dataUrl;
-                currentPdfName = name;
-                pdfName.textContent = name;
+            if (file.type !== 'application/pdf') { alert('Le fichier doit être un PDF.'); return; }
+            pdfPlaceholder.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi du PDF...';
+            try {
+                var res = await uploadFile(file);
+                currentPdfUrl = res.url;
+                currentPdfName = res.name;
+                pdfNameSpan.textContent = res.name;
                 pdfInfo.classList.add('show');
                 pdfPlaceholder.style.display = 'none';
-            });
+            } catch (err) {
+                alert('Erreur upload PDF : ' + err.message);
+            } finally {
+                pdfPlaceholder.innerHTML = '<i class="fas fa-file-pdf"></i> Cliquez ou glissez un PDF ici';
+            }
         });
+
         pdfRemoveBtn.addEventListener('click', function() {
-            currentPdfData = '';
+            currentPdfUrl = '';
             currentPdfName = '';
             pdfInfo.classList.remove('show');
             pdfPlaceholder.style.display = 'block';
             artPdfInput.value = '';
         });
 
-        function renderArticles() {
-            const articles = getArticles();
-            if (articles.length === 0) {
+        async function renderArticles() {
+            var articles;
+            try { articles = await api('GET', '/api/articles'); } catch (e) { articles = []; }
+            if (!articles || articles.length === 0) {
                 articlesList.innerHTML = '<div class="no-articles">Aucun article pour le moment.</div>';
                 return;
             }
@@ -916,13 +881,7 @@
             }).join('');
         }
 
-        function escapeHtml(str) {
-            var div = document.createElement('div');
-            div.appendChild(document.createTextNode(str));
-            return div.innerHTML;
-        }
-
-        document.getElementById('saveBtn').addEventListener('click', function() {
+        document.getElementById('saveBtn').addEventListener('click', async function() {
             var title = document.getElementById('artTitle').value.trim();
             var date = document.getElementById('artDate').value;
             var desc = document.getElementById('artDesc').value.trim();
@@ -935,37 +894,28 @@
                 return;
             }
 
-            var image = currentImageData;
-            var articles = getArticles();
+            var payload = {
+                title: title, date: date, description: desc,
+                icon: icon, link: link,
+                image: currentImageUrl, pdf: currentPdfUrl, pdfName: currentPdfName
+            };
 
-            if (editId) {
-                articles = articles.map(function(a) {
-                    if (a.id === editId) {
-                        return { id: a.id, title: title, date: date, description: desc, icon: icon, link: link, image: image || a.image || '', pdf: currentPdfData || a.pdf || '', pdfName: currentPdfName || a.pdfName || '' };
-                    }
-                    return a;
-                });
-            } else {
-                articles.unshift({
-                    id: Date.now().toString(),
-                    title: title,
-                    date: date,
-                    description: desc,
-                    icon: icon,
-                    link: link,
-                    image: image,
-                    pdf: currentPdfData,
-                    pdfName: currentPdfName
-                });
+            try {
+                if (editId) {
+                    await api('PUT', '/api/admin/articles/' + encodeURIComponent(editId), payload);
+                } else {
+                    await api('POST', '/api/admin/articles', payload);
+                }
+                clearForm();
+                await renderArticles();
+            } catch (err) {
+                alert('Erreur enregistrement : ' + err.message);
             }
-
-            saveArticles(articles);
-            clearForm();
-            renderArticles();
         });
 
-        window.editArticle = function(id) {
-            var articles = getArticles();
+        window.editArticle = async function(id) {
+            var articles;
+            try { articles = await api('GET', '/api/articles'); } catch (e) { return; }
             var article = articles.find(function(a) { return a.id === id; });
             if (!article) return;
 
@@ -975,27 +925,25 @@
             document.getElementById('artIcon').value = article.icon;
             document.getElementById('artLink').value = article.link || '';
             editIdInput.value = article.id;
-            // Restore image preview
             if (article.image) {
-                currentImageData = article.image;
+                currentImageUrl = article.image;
                 imgPreviewTag.src = article.image;
                 imgPreview.style.display = 'block';
                 uploadPlaceholder.style.display = 'none';
             } else {
-                currentImageData = '';
+                currentImageUrl = '';
                 imgPreviewTag.src = '';
                 imgPreview.style.display = 'none';
                 uploadPlaceholder.style.display = 'block';
             }
-            // Restore PDF
             if (article.pdf) {
-                currentPdfData = article.pdf;
+                currentPdfUrl = article.pdf;
                 currentPdfName = article.pdfName || 'document.pdf';
-                pdfName.textContent = currentPdfName;
+                pdfNameSpan.textContent = currentPdfName;
                 pdfInfo.classList.add('show');
                 pdfPlaceholder.style.display = 'none';
             } else {
-                currentPdfData = '';
+                currentPdfUrl = '';
                 currentPdfName = '';
                 pdfInfo.classList.remove('show');
                 pdfPlaceholder.style.display = 'block';
@@ -1005,11 +953,14 @@
             document.getElementById('articleForm').scrollIntoView({ behavior: 'smooth' });
         };
 
-        window.deleteArticle = function(id) {
+        window.deleteArticle = async function(id) {
             if (!confirm('Supprimer cet article ?')) return;
-            var articles = getArticles().filter(function(a) { return a.id !== id; });
-            saveArticles(articles);
-            renderArticles();
+            try {
+                await api('DELETE', '/api/admin/articles/' + encodeURIComponent(id));
+                await renderArticles();
+            } catch (err) {
+                alert('Erreur suppression : ' + err.message);
+            }
         };
 
         function clearForm() {
@@ -1019,12 +970,12 @@
             document.getElementById('artIcon').value = 'fa-newspaper';
             document.getElementById('artLink').value = '';
             editIdInput.value = '';
-            currentImageData = '';
+            currentImageUrl = '';
             artImageInput.value = '';
             imgPreviewTag.src = '';
             imgPreview.style.display = 'none';
             uploadPlaceholder.style.display = 'block';
-            currentPdfData = '';
+            currentPdfUrl = '';
             currentPdfName = '';
             artPdfInput.value = '';
             pdfInfo.classList.remove('show');
@@ -1046,24 +997,9 @@
         });
 
         // ===== RAPPORTS MANAGEMENT =====
-        var rapCurrentImageData = '';
-        var rapCurrentPdfData = '';
+        var rapCurrentImageUrl = '';
+        var rapCurrentPdfUrl = '';
         var rapCurrentPdfName = '';
-
-        function getRapports() {
-            var stored = localStorage.getItem(RAPPORTS_KEY);
-            if (!stored) return [];
-            return JSON.parse(stored);
-        }
-
-        function saveRapports(rapports) {
-            try {
-                localStorage.setItem(RAPPORTS_KEY, JSON.stringify(rapports));
-            } catch (e) {
-                alert('Stockage du navigateur plein. Le PDF est probablement trop lourd. Compressez-le (4 Mo max recommandé) ou supprimez d\'anciens rapports.');
-                throw e;
-            }
-        }
 
         var rapportsList = document.getElementById('rapportsList');
         var rapEditIdInput = document.getElementById('rapEditId');
@@ -1075,19 +1011,25 @@
         var rapImgRemoveBtn = document.getElementById('rapImgRemoveBtn');
         var rapUploadPlaceholder = document.getElementById('rapUploadPlaceholder');
 
-        rapImageInput.addEventListener('change', function() {
+        rapImageInput.addEventListener('change', async function() {
             var file = this.files[0];
             if (!file) return;
-            resizeImage(file, 800, function(dataUrl) {
-                rapCurrentImageData = dataUrl;
-                rapImgPreviewTag.src = dataUrl;
+            rapUploadPlaceholder.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+            try {
+                var res = await uploadFile(file);
+                rapCurrentImageUrl = res.url;
+                rapImgPreviewTag.src = res.url;
                 rapImgPreview.style.display = 'block';
                 rapUploadPlaceholder.style.display = 'none';
-            });
+            } catch (err) {
+                alert('Erreur upload image : ' + err.message);
+            } finally {
+                rapUploadPlaceholder.innerHTML = '<i class="fas fa-cloud-arrow-up"></i> Cliquez ou glissez une image ici';
+            }
         });
 
         rapImgRemoveBtn.addEventListener('click', function() {
-            rapCurrentImageData = '';
+            rapCurrentImageUrl = '';
             rapImgPreviewTag.src = '';
             rapImgPreview.style.display = 'none';
             rapUploadPlaceholder.style.display = 'block';
@@ -1097,32 +1039,41 @@
         // PDF upload (rapport)
         var rapPdfInput = document.getElementById('rapPdf');
         var rapPdfInfo = document.getElementById('rapPdfInfo');
-        var rapPdfName = document.getElementById('rapPdfName');
+        var rapPdfNameSpan = document.getElementById('rapPdfName');
         var rapPdfPlaceholder = document.getElementById('rapPdfPlaceholder');
         var rapPdfRemoveBtn = document.getElementById('rapPdfRemoveBtn');
 
-        rapPdfInput.addEventListener('change', function() {
+        rapPdfInput.addEventListener('change', async function() {
             var file = this.files[0];
             if (!file) return;
-            readPdfAsDataUrl(file, function(dataUrl, name) {
-                rapCurrentPdfData = dataUrl;
-                rapCurrentPdfName = name;
-                rapPdfName.textContent = name;
+            if (file.type !== 'application/pdf') { alert('Le fichier doit être un PDF.'); return; }
+            rapPdfPlaceholder.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi du PDF...';
+            try {
+                var res = await uploadFile(file);
+                rapCurrentPdfUrl = res.url;
+                rapCurrentPdfName = res.name;
+                rapPdfNameSpan.textContent = res.name;
                 rapPdfInfo.classList.add('show');
                 rapPdfPlaceholder.style.display = 'none';
-            });
+            } catch (err) {
+                alert('Erreur upload PDF : ' + err.message);
+            } finally {
+                rapPdfPlaceholder.innerHTML = '<i class="fas fa-file-pdf"></i> Cliquez ou glissez un PDF ici';
+            }
         });
+
         rapPdfRemoveBtn.addEventListener('click', function() {
-            rapCurrentPdfData = '';
+            rapCurrentPdfUrl = '';
             rapCurrentPdfName = '';
             rapPdfInfo.classList.remove('show');
             rapPdfPlaceholder.style.display = 'block';
             rapPdfInput.value = '';
         });
 
-        function renderRapports() {
-            var rapports = getRapports();
-            if (rapports.length === 0) {
+        async function renderRapports() {
+            var rapports;
+            try { rapports = await api('GET', '/api/rapports'); } catch (e) { rapports = []; }
+            if (!rapports || rapports.length === 0) {
                 rapportsList.innerHTML = '<div class="no-articles">Aucun rapport pour le moment.</div>';
                 return;
             }
@@ -1146,7 +1097,7 @@
             }).join('');
         }
 
-        document.getElementById('rapSaveBtn').addEventListener('click', function() {
+        document.getElementById('rapSaveBtn').addEventListener('click', async function() {
             var title = document.getElementById('rapTitle').value.trim();
             var date = document.getElementById('rapDate').value;
             var desc = document.getElementById('rapDesc').value.trim();
@@ -1158,36 +1109,28 @@
                 return;
             }
 
-            var image = rapCurrentImageData;
-            var rapports = getRapports();
+            var payload = {
+                title: title, date: date, description: desc,
+                frequency: frequency,
+                image: rapCurrentImageUrl, pdf: rapCurrentPdfUrl, pdfName: rapCurrentPdfName
+            };
 
-            if (editId) {
-                rapports = rapports.map(function(r) {
-                    if (r.id === editId) {
-                        return { id: r.id, title: title, date: date, description: desc, frequency: frequency, image: image || r.image || '', pdf: rapCurrentPdfData || r.pdf || '', pdfName: rapCurrentPdfName || r.pdfName || '' };
-                    }
-                    return r;
-                });
-            } else {
-                rapports.unshift({
-                    id: Date.now().toString(),
-                    title: title,
-                    date: date,
-                    description: desc,
-                    frequency: frequency,
-                    image: image,
-                    pdf: rapCurrentPdfData,
-                    pdfName: rapCurrentPdfName
-                });
+            try {
+                if (editId) {
+                    await api('PUT', '/api/admin/rapports/' + encodeURIComponent(editId), payload);
+                } else {
+                    await api('POST', '/api/admin/rapports', payload);
+                }
+                clearRapportForm();
+                await renderRapports();
+            } catch (err) {
+                alert('Erreur enregistrement : ' + err.message);
             }
-
-            saveRapports(rapports);
-            clearRapportForm();
-            renderRapports();
         });
 
-        window.editRapport = function(id) {
-            var rapports = getRapports();
+        window.editRapport = async function(id) {
+            var rapports;
+            try { rapports = await api('GET', '/api/rapports'); } catch (e) { return; }
             var rapport = rapports.find(function(r) { return r.id === id; });
             if (!rapport) return;
 
@@ -1197,24 +1140,24 @@
             document.getElementById('rapFrequency').value = rapport.frequency;
             rapEditIdInput.value = rapport.id;
             if (rapport.image) {
-                rapCurrentImageData = rapport.image;
+                rapCurrentImageUrl = rapport.image;
                 rapImgPreviewTag.src = rapport.image;
                 rapImgPreview.style.display = 'block';
                 rapUploadPlaceholder.style.display = 'none';
             } else {
-                rapCurrentImageData = '';
+                rapCurrentImageUrl = '';
                 rapImgPreviewTag.src = '';
                 rapImgPreview.style.display = 'none';
                 rapUploadPlaceholder.style.display = 'block';
             }
             if (rapport.pdf) {
-                rapCurrentPdfData = rapport.pdf;
+                rapCurrentPdfUrl = rapport.pdf;
                 rapCurrentPdfName = rapport.pdfName || 'document.pdf';
-                rapPdfName.textContent = rapCurrentPdfName;
+                rapPdfNameSpan.textContent = rapCurrentPdfName;
                 rapPdfInfo.classList.add('show');
                 rapPdfPlaceholder.style.display = 'none';
             } else {
-                rapCurrentPdfData = '';
+                rapCurrentPdfUrl = '';
                 rapCurrentPdfName = '';
                 rapPdfInfo.classList.remove('show');
                 rapPdfPlaceholder.style.display = 'block';
@@ -1224,11 +1167,14 @@
             document.getElementById('rapportForm').scrollIntoView({ behavior: 'smooth' });
         };
 
-        window.deleteRapport = function(id) {
+        window.deleteRapport = async function(id) {
             if (!confirm('Supprimer ce rapport ?')) return;
-            var rapports = getRapports().filter(function(r) { return r.id !== id; });
-            saveRapports(rapports);
-            renderRapports();
+            try {
+                await api('DELETE', '/api/admin/rapports/' + encodeURIComponent(id));
+                await renderRapports();
+            } catch (err) {
+                alert('Erreur suppression : ' + err.message);
+            }
         };
 
         function clearRapportForm() {
@@ -1237,12 +1183,12 @@
             document.getElementById('rapDesc').value = '';
             document.getElementById('rapFrequency').value = 'semaine';
             rapEditIdInput.value = '';
-            rapCurrentImageData = '';
+            rapCurrentImageUrl = '';
             rapImageInput.value = '';
             rapImgPreviewTag.src = '';
             rapImgPreview.style.display = 'none';
             rapUploadPlaceholder.style.display = 'block';
-            rapCurrentPdfData = '';
+            rapCurrentPdfUrl = '';
             rapCurrentPdfName = '';
             rapPdfInput.value = '';
             rapPdfInfo.classList.remove('show');
@@ -1253,10 +1199,13 @@
 
         rapCancelBtn.addEventListener('click', clearRapportForm);
 
-        // Check session (must be after all DOM elements and handlers are initialized)
-        if (sessionStorage.getItem(SESSION_KEY) === 'true') {
-            showAdmin();
-        }
+        // ===== Auto-login check =====
+        (async function() {
+            try {
+                var me = await api('GET', '/api/admin/me');
+                if (me && me.isAdmin) await showAdmin();
+            } catch (e) {}
+        })();
     </script>
 
 </body>

@@ -243,8 +243,6 @@
 
     <script>
         (function() {
-            var ARTICLES_KEY = 'qg_articles';
-            var RAPPORTS_KEY = 'qg_rapports';
             var months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
             function formatDate(d) {
@@ -271,89 +269,91 @@
                 return;
             }
 
-            var key = type === 'rapport' ? RAPPORTS_KEY : ARTICLES_KEY;
-            var stored = localStorage.getItem(key);
-            var items = stored ? JSON.parse(stored) : [];
-            var item = items.find(function(x) { return x.id === id; });
-
-            if (!item) {
+            var endpoint = type === 'rapport' ? '/api/rapports/' : '/api/articles/';
+            fetch(endpoint + encodeURIComponent(id)).then(function(r) {
+                if (!r.ok) throw new Error('not found');
+                return r.json();
+            }).then(function(item) {
+                renderItem(type, item);
+            }).catch(function() {
                 root.innerHTML = '<div class="error-box"><i class="fas fa-triangle-exclamation"></i><h3>Contenu introuvable</h3><p>Cet article ou rapport n\'existe plus.</p></div>';
-                return;
-            }
+            });
 
-            document.title = item.title + ' – QG Analysis';
+            function renderItem(type, item) {
+                document.title = item.title + ' – QG Analysis';
 
-            var freqLabels = { semaine: 'Hebdomadaire', mois: 'Mensuel', autre: 'Autre' };
-            var kicker = type === 'rapport' ? '<i class="fas fa-file-lines"></i> Rapport' : '<i class="fas fa-newspaper"></i> Actualité';
-            var freqHtml = (type === 'rapport' && item.frequency) ? '<span><i class="fas fa-clock-rotate-left"></i>' + escapeHtml(freqLabels[item.frequency] || '') + '</span>' : '';
+                var freqLabels = { semaine: 'Hebdomadaire', mois: 'Mensuel', autre: 'Autre' };
+                var kicker = type === 'rapport' ? '<i class="fas fa-file-lines"></i> Rapport' : '<i class="fas fa-newspaper"></i> Actualité';
+                var freqHtml = (type === 'rapport' && item.frequency) ? '<span><i class="fas fa-clock-rotate-left"></i>' + escapeHtml(freqLabels[item.frequency] || '') + '</span>' : '';
 
-            var heroHtml =
-                '<section class="viewer-hero"><div class="viewer-hero-inner">' +
-                    '<span class="viewer-kicker">' + kicker + '</span>' +
-                    '<h1 class="viewer-title">' + escapeHtml(item.title) + '</h1>' +
-                    '<div class="viewer-meta">' +
-                        '<span><i class="fas fa-calendar"></i>' + formatDate(item.date) + '</span>' +
-                        freqHtml +
-                    '</div>' +
-                    '<p class="viewer-desc">' + escapeHtml(item.description) + '</p>' +
-                '</div></section>';
-
-            var bodyHtml;
-            if (item.pdf) {
-                var pdfFileName = item.pdfName || 'document.pdf';
-                bodyHtml =
-                    '<div class="pdf-shell" id="pdfShell">' +
-                        '<div class="pdf-toolbar">' +
-                            '<div class="pdf-toolbar-left">' +
-                                '<i class="fas fa-file-pdf"></i>' +
-                                '<span class="toolbar-filename">' + escapeHtml(pdfFileName) + '</span>' +
-                            '</div>' +
-                            '<div class="pdf-toolbar-right">' +
-                                '<button class="pdf-tool-btn" id="fullscreenBtn" title="Plein écran"><i class="fas fa-expand"></i></button>' +
-                                '<a class="pdf-tool-btn" href="' + item.pdf + '" target="_blank" title="Ouvrir dans un nouvel onglet"><i class="fas fa-up-right-from-square"></i></a>' +
-                            '</div>' +
+                var heroHtml =
+                    '<section class="viewer-hero"><div class="viewer-hero-inner">' +
+                        '<span class="viewer-kicker">' + kicker + '</span>' +
+                        '<h1 class="viewer-title">' + escapeHtml(item.title) + '</h1>' +
+                        '<div class="viewer-meta">' +
+                            '<span><i class="fas fa-calendar"></i>' + formatDate(item.date) + '</span>' +
+                            freqHtml +
                         '</div>' +
-                        '<iframe class="pdf-frame" src="' + item.pdf + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
-                    '</div>';
-                var dl = document.getElementById('downloadBtn');
-                dl.href = item.pdf;
-                dl.download = pdfFileName;
-                dl.style.display = 'inline-flex';
-            } else if (item.link) {
-                window.location.replace(item.link);
-                return;
-            } else {
-                var coverHtml = item.image ? '<img class="viewer-cover" src="' + item.image + '" alt="' + escapeHtml(item.title) + '">' : '';
-                bodyHtml = coverHtml + '<div class="no-pdf"><i class="fas fa-file-circle-question"></i><h3>Aucun document associé</h3><p>Cet article ne contient pas de document PDF.</p></div>';
-            }
+                        '<p class="viewer-desc">' + escapeHtml(item.description) + '</p>' +
+                    '</div></section>';
 
-            root.innerHTML = heroHtml + '<div class="viewer-content">' + bodyHtml + '</div>';
+                var bodyHtml;
+                if (item.pdf) {
+                    var pdfFileName = item.pdfName || 'document.pdf';
+                    bodyHtml =
+                        '<div class="pdf-shell" id="pdfShell">' +
+                            '<div class="pdf-toolbar">' +
+                                '<div class="pdf-toolbar-left">' +
+                                    '<i class="fas fa-file-pdf"></i>' +
+                                    '<span class="toolbar-filename">' + escapeHtml(pdfFileName) + '</span>' +
+                                '</div>' +
+                                '<div class="pdf-toolbar-right">' +
+                                    '<button class="pdf-tool-btn" id="fullscreenBtn" title="Plein écran"><i class="fas fa-expand"></i></button>' +
+                                    '<a class="pdf-tool-btn" href="' + item.pdf + '" target="_blank" title="Ouvrir dans un nouvel onglet"><i class="fas fa-up-right-from-square"></i></a>' +
+                                '</div>' +
+                            '</div>' +
+                            '<iframe class="pdf-frame" src="' + item.pdf + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
+                        '</div>';
+                    var dl = document.getElementById('downloadBtn');
+                    dl.href = item.pdf;
+                    dl.download = pdfFileName;
+                    dl.style.display = 'inline-flex';
+                } else if (item.link) {
+                    window.location.replace(item.link);
+                    return;
+                } else {
+                    var coverHtml = item.image ? '<img class="viewer-cover" src="' + item.image + '" alt="' + escapeHtml(item.title) + '">' : '';
+                    bodyHtml = coverHtml + '<div class="no-pdf"><i class="fas fa-file-circle-question"></i><h3>Aucun document associé</h3><p>Cet article ne contient pas de document PDF.</p></div>';
+                }
 
-            var fsBtn = document.getElementById('fullscreenBtn');
-            if (fsBtn) {
-                fsBtn.addEventListener('click', function() {
-                    var shell = document.getElementById('pdfShell');
-                    shell.classList.toggle('fullscreen');
-                    var icon = fsBtn.querySelector('i');
-                    if (shell.classList.contains('fullscreen')) {
-                        icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
-                        document.body.style.overflow = 'hidden';
-                    } else {
-                        icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
-                        document.body.style.overflow = '';
-                    }
-                });
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
+                root.innerHTML = heroHtml + '<div class="viewer-content">' + bodyHtml + '</div>';
+
+                var fsBtn = document.getElementById('fullscreenBtn');
+                if (fsBtn) {
+                    fsBtn.addEventListener('click', function() {
                         var shell = document.getElementById('pdfShell');
-                        if (shell && shell.classList.contains('fullscreen')) {
-                            shell.classList.remove('fullscreen');
-                            var ic = fsBtn.querySelector('i');
-                            ic.classList.remove('fa-compress'); ic.classList.add('fa-expand');
+                        shell.classList.toggle('fullscreen');
+                        var icon = fsBtn.querySelector('i');
+                        if (shell.classList.contains('fullscreen')) {
+                            icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
+                            document.body.style.overflow = 'hidden';
+                        } else {
+                            icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
                             document.body.style.overflow = '';
                         }
-                    }
-                });
+                    });
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape') {
+                            var shell = document.getElementById('pdfShell');
+                            if (shell && shell.classList.contains('fullscreen')) {
+                                shell.classList.remove('fullscreen');
+                                var ic = fsBtn.querySelector('i');
+                                ic.classList.remove('fa-compress'); ic.classList.add('fa-expand');
+                                document.body.style.overflow = '';
+                            }
+                        }
+                    });
+                }
             }
         })();
     </script>
