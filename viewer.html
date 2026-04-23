@@ -122,9 +122,9 @@
         }
 
         .viewer-content {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 26px 30px 60px;
+            padding: 26px 24px 60px;
         }
         .pdf-shell {
             background: #1a1d2e;
@@ -175,11 +175,120 @@
 
         .pdf-frame {
             width: 100%;
-            height: calc(100vh - 90px);
-            min-height: 700px;
+            height: calc(100vh - 120px);
+            min-height: 820px;
             border: none;
             display: block;
-            background: #525659;
+            background: #2a2d44;
+        }
+
+        /* Vue mobile dédiée pour les PDF */
+        .mobile-pdf-card {
+            background: linear-gradient(160deg, #1a1d2e 0%, #13162a 100%);
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+            box-shadow: 0 25px 60px -15px rgba(0,0,0,0.55);
+        }
+        .mobile-pdf-preview {
+            position: relative;
+            background: #0f1120;
+            aspect-ratio: 3 / 4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .mobile-pdf-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .mobile-pdf-preview-placeholder {
+            text-align: center;
+            padding: 30px;
+            width: 100%;
+        }
+        .mobile-pdf-preview-placeholder i {
+            font-size: 4.5rem;
+            color: #dc002e;
+            margin-bottom: 14px;
+            filter: drop-shadow(0 6px 20px rgba(220,0,46,0.5));
+        }
+        .mobile-pdf-preview-placeholder p {
+            color: #8a8fb0;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        .mobile-pdf-preview::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 60%;
+            background: linear-gradient(180deg, transparent 0%, rgba(15,17,32,0.85) 60%, #13162a 100%);
+            pointer-events: none;
+        }
+        .mobile-pdf-info {
+            padding: 22px 22px 24px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            margin-top: -60px;
+        }
+        .mobile-pdf-filename {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.06);
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-size: 0.78rem;
+            color: #c8ccdf;
+            margin-bottom: 16px;
+            max-width: 100%;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .mobile-pdf-filename i { color: #dc002e; }
+        .mobile-pdf-filename span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .mobile-cta-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: #dc002e;
+            color: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 1rem;
+            border: none;
+            box-shadow: 0 12px 30px -8px rgba(220,0,46,0.55);
+            margin-bottom: 10px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .mobile-cta-secondary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            color: #c8ccdf;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-family: 'Poppins', sans-serif;
         }
         .pdf-shell.fullscreen {
             position: fixed;
@@ -217,11 +326,8 @@
             .viewer-header .vh-logo img { height: 44px; }
             .viewer-hero { padding: 34px 20px 26px; }
             .viewer-content { padding: 18px 14px 40px; }
-            .pdf-frame { height: calc(100vh - 70px); min-height: 500px; }
             .vh-btn { padding: 8px 12px; font-size: 0.78rem; }
             .vh-btn-back span, .vh-btn-download span { display: none; }
-            .pdf-toolbar { padding: 10px 14px; }
-            .toolbar-filename { display: none; }
         }
     </style>
 </head>
@@ -297,27 +403,45 @@
                         '<p class="viewer-desc">' + escapeHtml(item.description) + '</p>' +
                     '</div></section>';
 
+                var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
                 var bodyHtml;
                 if (item.pdf) {
                     var pdfFileName = item.pdfName || 'document.pdf';
-                    bodyHtml =
-                        '<div class="pdf-shell" id="pdfShell">' +
-                            '<div class="pdf-toolbar">' +
-                                '<div class="pdf-toolbar-left">' +
-                                    '<i class="fas fa-file-pdf"></i>' +
-                                    '<span class="toolbar-filename">' + escapeHtml(pdfFileName) + '</span>' +
-                                '</div>' +
-                                '<div class="pdf-toolbar-right">' +
-                                    '<button class="pdf-tool-btn" id="fullscreenBtn" title="Plein écran"><i class="fas fa-expand"></i></button>' +
-                                    '<a class="pdf-tool-btn" href="' + item.pdf + '" target="_blank" title="Ouvrir dans un nouvel onglet"><i class="fas fa-up-right-from-square"></i></a>' +
-                                '</div>' +
-                            '</div>' +
-                            '<iframe class="pdf-frame" src="' + item.pdf + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
-                        '</div>';
                     var dl = document.getElementById('downloadBtn');
                     dl.href = item.pdf;
                     dl.download = pdfFileName;
                     dl.style.display = 'inline-flex';
+
+                    if (isMobile) {
+                        var previewInner = item.image
+                            ? '<img src="' + item.image + '" alt="' + escapeHtml(item.title) + '">'
+                            : '<div class="mobile-pdf-preview-placeholder"><i class="fas fa-file-pdf"></i><p>Document PDF</p></div>';
+                        bodyHtml =
+                            '<div class="mobile-pdf-card">' +
+                                '<div class="mobile-pdf-preview">' + previewInner + '</div>' +
+                                '<div class="mobile-pdf-info">' +
+                                    '<div class="mobile-pdf-filename"><i class="fas fa-file-pdf"></i><span>' + escapeHtml(pdfFileName) + '</span></div>' +
+                                    '<a class="mobile-cta-primary" href="' + item.pdf + '" target="_blank" rel="noopener"><i class="fas fa-book-open"></i> Lire le document</a>' +
+                                    '<a class="mobile-cta-secondary" href="' + item.pdf + '" download="' + escapeHtml(pdfFileName) + '"><i class="fas fa-download"></i> Télécharger (' + 'PDF)</a>' +
+                                '</div>' +
+                            '</div>';
+                    } else {
+                        bodyHtml =
+                            '<div class="pdf-shell" id="pdfShell">' +
+                                '<div class="pdf-toolbar">' +
+                                    '<div class="pdf-toolbar-left">' +
+                                        '<i class="fas fa-file-pdf"></i>' +
+                                        '<span class="toolbar-filename">' + escapeHtml(pdfFileName) + '</span>' +
+                                    '</div>' +
+                                    '<div class="pdf-toolbar-right">' +
+                                        '<button class="pdf-tool-btn" id="fullscreenBtn" title="Plein écran"><i class="fas fa-expand"></i></button>' +
+                                        '<a class="pdf-tool-btn" href="' + item.pdf + '" target="_blank" title="Ouvrir dans un nouvel onglet"><i class="fas fa-up-right-from-square"></i></a>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<iframe class="pdf-frame" src="' + item.pdf + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
+                            '</div>';
+                    }
                 } else if (item.link) {
                     window.location.replace(item.link);
                     return;
