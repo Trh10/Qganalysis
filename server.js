@@ -143,6 +143,19 @@ app.post('/api/admin/upload', requireAuth, upload.single('file'), (req, res) => 
   });
 });
 
+app.post('/api/admin/import-content', requireAuth, (req, res) => {
+  const articles = Array.isArray(req.body?.articles) ? req.body.articles : null;
+  const rapports = Array.isArray(req.body?.rapports) ? req.body.rapports : null;
+
+  if (!articles || !rapports) {
+    return res.status(400).json({ error: 'articles and rapports arrays are required' });
+  }
+
+  writeJson(ARTICLES_FILE, articles);
+  writeJson(RAPPORTS_FILE, rapports);
+  res.json({ ok: true, articles: articles.length, rapports: rapports.length });
+});
+
 // ============ ADMIN CRUD : ARTICLES ============
 app.post('/api/admin/articles', requireAuth, (req, res) => {
   const articles = readJson(ARTICLES_FILE, []);
