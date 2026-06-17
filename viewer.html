@@ -309,6 +309,72 @@
             display: block;
         }
 
+        .article-reader {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        .article-cover {
+            width: 100%;
+            max-height: 560px;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 14px;
+            box-shadow: 0 24px 60px -18px rgba(0,0,0,0.65);
+            margin-bottom: 34px;
+            display: block;
+        }
+        .article-body {
+            padding: 4px 0 20px;
+        }
+        .article-byline {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: #ff6b88;
+            font-size: 0.86rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+        }
+        .article-byline i {
+            color: #dc002e;
+        }
+        .article-lead {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.18rem;
+            line-height: 1.82;
+            color: #f3f4fb;
+            font-weight: 400;
+            margin: 0 0 36px;
+            padding: 22px 0 22px 26px;
+            border-left: 4px solid #dc002e;
+        }
+        .article-body h2 {
+            font-family: 'Outfit', sans-serif;
+            color: #fff;
+            font-size: 1.38rem;
+            line-height: 1.35;
+            font-weight: 800;
+            margin: 46px 0 16px;
+        }
+        .article-body p {
+            color: #d6d9e8;
+            font-size: 1.01rem;
+            line-height: 1.92;
+            font-weight: 300;
+            margin: 0 0 21px;
+        }
+        .article-signature {
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.06rem;
+            font-weight: 700;
+            margin-top: 38px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
+
         .no-pdf, .error-box {
             background: #1a1d2e;
             padding: 70px 30px;
@@ -325,9 +391,15 @@
             .viewer-header { padding: 12px 18px; }
             .viewer-header .vh-logo img { height: 44px; }
             .viewer-hero { padding: 34px 20px 26px; }
+            .viewer-title { font-size: 1.68rem; line-height: 1.18; overflow-wrap: break-word; }
+            .viewer-desc { font-size: 0.96rem; overflow-wrap: break-word; }
             .viewer-content { padding: 18px 14px 40px; }
             .vh-btn { padding: 8px 12px; font-size: 0.78rem; }
             .vh-btn-back span, .vh-btn-download span { display: none; }
+            .article-cover { max-height: 420px; border-radius: 12px; margin-bottom: 24px; }
+            .article-lead { font-size: 1.04rem; line-height: 1.72; padding-left: 18px; }
+            .article-body h2 { font-size: 1.18rem; margin-top: 36px; }
+            .article-body p { font-size: 0.96rem; line-height: 1.82; }
         }
     </style>
 </head>
@@ -369,6 +441,23 @@
                 var numericPrefix = clean.match(/^\d+/);
                 return numericPrefix ? numericPrefix[0] : clean;
             }
+            function hasArticleContent(item) {
+                return Array.isArray(item.content) && item.content.length > 0;
+            }
+            function renderContentBlock(block) {
+                if (!block || !block.text) return '';
+                var text = escapeHtml(block.text);
+                if (block.type === 'heading') return '<h2>' + text + '</h2>';
+                if (block.type === 'lead') return '<p class="article-lead">' + text + '</p>';
+                if (block.type === 'signature') return '<p class="article-signature">' + text + '</p>';
+                return '<p>' + text + '</p>';
+            }
+            function renderArticleBody(item) {
+                var coverHtml = item.image ? '<img class="article-cover" src="' + item.image + '" alt="' + escapeHtml(item.title) + '">' : '';
+                var bylineHtml = item.author ? '<div class="article-byline"><i class="fas fa-user-pen"></i><span>' + escapeHtml(item.author) + '</span></div>' : '';
+                var contentHtml = item.content.map(renderContentBlock).join('');
+                return '<article class="article-reader">' + coverHtml + '<div class="article-body">' + bylineHtml + contentHtml + '</div></article>';
+            }
 
             var type = getParam('type');
             var id = normalizeContentId(getParam('id'));
@@ -395,6 +484,7 @@
                 var freqLabels = { semaine: 'Hebdomadaire', mois: 'Mensuel', autre: 'Autre' };
                 var kicker = type === 'rapport' ? '<i class="fas fa-file-lines"></i> Rapport' : '<i class="fas fa-newspaper"></i> Actualité';
                 var freqHtml = (type === 'rapport' && item.frequency) ? '<span><i class="fas fa-clock-rotate-left"></i>' + escapeHtml(freqLabels[item.frequency] || '') + '</span>' : '';
+                var authorHtml = (type === 'article' && item.author) ? '<span><i class="fas fa-user-pen"></i>' + escapeHtml(item.author) + '</span>' : '';
 
                 var heroHtml =
                     '<section class="viewer-hero"><div class="viewer-hero-inner">' +
@@ -402,6 +492,7 @@
                         '<h1 class="viewer-title">' + escapeHtml(item.title) + '</h1>' +
                         '<div class="viewer-meta">' +
                             '<span><i class="fas fa-calendar"></i>' + formatDate(item.date) + '</span>' +
+                            authorHtml +
                             freqHtml +
                         '</div>' +
                         '<p class="viewer-desc">' + escapeHtml(item.description) + '</p>' +
@@ -446,6 +537,8 @@
                                 '<iframe class="pdf-frame" src="' + item.pdf + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
                             '</div>';
                     }
+                } else if (type === 'article' && hasArticleContent(item)) {
+                    bodyHtml = renderArticleBody(item);
                 } else if (item.link) {
                     window.location.replace(item.link);
                     return;

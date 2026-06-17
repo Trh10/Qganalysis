@@ -20,8 +20,131 @@ const RAPPORTS_FILE = path.join(DATA_DIR, 'rapports.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
+const ARTICLE_REVISION_CONSTITUTION_CONTENT = [
+  {
+    type: 'lead',
+    text: "Le 9 juin 2026, l'Assemblée nationale vote la loi référendaire qui ouvre la voie à la révision de la Constitution de 2006. Vingt ans après avoir boycotté ce même texte, l'UDPS d'Étienne Tshisekedi en devient le fossoyeur. Entre le précédent africain dévastateur, les articles 219 et 220 qui verrouillent la loi fondamentale, et un peuple qui survit avec moins de 2 dollars par jour, la RDC fait face à un choix existentiel : appliquer sa Constitution ou la brûler sans feu qui s'arrête aux articles choisis."
+  },
+  { type: 'heading', text: "I. L'ironie d'une histoire en boucle" },
+  {
+    type: 'paragraph',
+    text: "Le 9 juin 2026, l'Assemblée nationale adopte à la majorité présidentielle la loi organique portant organisation du référendum. Le symbole est vertigineux : vingt ans après avoir boycotté le référendum constitutionnel de 2006, l'UDPS, le parti d'Étienne Tshisekedi, porte aujourd'hui l'initiative de réviser ce même texte. Le fils démantèle le cadre que le père avait refusé de légitimer. L'histoire congolaise n'est jamais avare d'ironies tragiques."
+  },
+  {
+    type: 'paragraph',
+    text: "Dès le 6 mai 2026, Félix Tshisekedi posait les dés : « Si le peuple souhaite que j'aie un troisième mandat, j'accepterai. » Sept mots qui ont fait trembler les institutions comme le souffle précède l'orage. Derrière cette franchise, un échafaudage juridique, historique et moral vacille."
+  },
+  { type: 'heading', text: 'II. Ceux qui disent oui : la Constitution est "dépassée"' },
+  {
+    type: 'paragraph',
+    text: "Le camp présidentiel assume. Augustin Kabuya, secrétaire général de l'UDPS, ne tourne pas autour du pot : « Nous sommes rattrapés par notre histoire. L'UDPS avait promis qu'une fois au pouvoir, elle toucherait à cette Constitution. » Cette Constitution, dit-il, a été « rédigée par des étrangers », « par les belligérants » à l'issue des conflits. Elle ne correspond plus au pays. André Mbata, premier vice-président de l'Assemblée nationale, renchérit : « Si le peuple décidait de la changer, que ferions-nous ? » Le souverain primaire, le peuple, sera consulté. C'est la promesse."
+  },
+  {
+    type: 'paragraph',
+    text: "Tshisekedi dénonce l'article 217 qui autorise « l'abandon partiel de souveraineté » pour promouvoir l'unité africaine. Il parle de « vente de la souveraineté ». Le président évoque aussi le « démarrage raté » de son mandat, ce retard dans la nomination du Premier ministre qui avait paralysé l'appareil d'État. Preuve des failles constitutionnelles, dit-il."
+  },
+  {
+    type: 'paragraph',
+    text: "Et puis il y a l'argument qui claque : « Mobutu, Laurent-Désiré Kabila et Joseph Kabila ont tous modifié la Constitution », martèle Kabuya. « Au nom de quel principe allez-vous interdire à notre régime d'y toucher ? » Didier Budimbu, ministre des Sports, affiche une franchise brutale : « Nous allons tout droit vers un troisième mandat, nous n'aurons pas honte. »"
+  },
+  {
+    type: 'paragraph',
+    text: "Il y a aussi la guerre. Le conflit dans les Kivus, cet état de siège qui dure depuis mai 2021, est invoqué pour justifier un éventuel report des élections de 2028. Tshisekedi compare la situation à celle de l'Ukraine de Zelensky. L'UDPS a lancé la Coalition C4 le 26 mai 2026 pour contrer le C64 de l'opposition. La bataille des coalitions est ouverte."
+  },
+  { type: 'heading', text: 'III. Ceux qui disent non : un mur juridique et un précédent mortel' },
+  {
+    type: 'paragraph',
+    text: "Mais la promesse de référendum n'est pas le problème. Le problème est ce qu'on met sous le référendum. On ne réécrit pas une Constitution entière pour un article 217 que personne n'a jamais invoqué et qui existe dans plusieurs Constitutions africaines sans poser problème."
+  },
+  {
+    type: 'paragraph',
+    text: "Pire : est-ce la Constitution qui dysfonctionne, ou ses exécuteurs ? Entre 2021 et 2025, 458 moyens de contrôle parlementaire ont été déposés. Seuls 22 ont été examinés : 4,8%. La Cour des comptes n'existe pas. La décentralisation n'a jamais été effectuée. On ne soigne pas une jambe cassée en coupant la tête du patient."
+  },
+  {
+    type: 'paragraph',
+    text: "Le mouvement Lucha, lui, a une réponse cinglante à l'argument de la guerre : « Si on ne peut pas organiser les élections sans le Nord et Sud-Kivu, comment pouvez-vous organiser un référendum constitutionnel sans ces provinces ? » La contradiction est piquante. On ne peut pas, simultanément, arguer que la guerre empêche le scrutin et que le même scrutin peut valablement réviser la loi fondamentale."
+  },
+  {
+    type: 'paragraph',
+    text: "Car il y a un mur. L'article 220 sanctuarise la forme républicaine, le suffrage universel, le nombre et la durée des mandats adoptés par référendum à 84%. Et surtout, l'article 219 interdit toute révision pendant l'état de guerre. Or, l'état de siège dure depuis mai 2021. On ne peut pas légiférer sur ce que la loi fondamentale interdit expressément de toucher, dans une période qu'elle interdit d'utiliser à cette fin."
+  },
+  {
+    type: 'paragraph',
+    text: "Denis Mukwege, Prix Nobel de la paix, l'a dit sans fard : « Touche pas à ma Constitution ! » (17 mai 2026)."
+  },
+  { type: 'heading', text: "IV. Le verdict de l'histoire : quatorze fois la même tragédie" },
+  {
+    type: 'paragraph',
+    text: "Mais le mur juridique n'arrête pas ceux qui ont décidé d'avancer. C'est là que le sang de l'Afrique se glace."
+  },
+  {
+    type: 'paragraph',
+    text: "Le Africa Center for Strategic Studies tire la sonnette d'alarme : « Les révisions constitutionnelles forcées et les coups d'État en Afrique sont deux faces de la même pièce. » L'Institute for Security Studies complète : « La quête de l'extension du pouvoir progresse de la plume à l'épée. »"
+  },
+  {
+    type: 'paragraph',
+    text: "Les chiffres sont têtus. Sur 14 cas africains de révisions constitutionnelles imposées, 64% ont abouti à un pouvoir présidentiel prolongé ou illimité. 43% ont déclenché une instabilité politique majeure : crise violente ou coup d'État. Rwanda 2015 : Kagame en route pour quarante ans cumulés. Burundi 2015 : 1 200 morts, 400 000 réfugiés. Guinée 2020 : coup d'État en 2021. Gabon 2023 : coup d'État. Ouganda : Museveni, trente-huit ans et plus. La boîte de Pandore, une fois ouverte, ne se referme jamais proprement."
+  },
+  {
+    type: 'paragraph',
+    text: "Le Sénégal 2024 a montré une autre voie : une Cour constitutionnelle indépendante, une armée neutre, une société civile mobilisée, trois alternances pacifiques ont repoussé une tentative similaire. La RDC n'a pas ces atouts. L'obstination ne suffit pas quand les institutions sont déjà fragilisées."
+  },
+  {
+    type: 'paragraph',
+    text: "Le « Glissement 2.0 » est plus structuré que la tentative de Kabila en 2015-2018 : la majorité est réelle, la coalition bâtie, la loi organique votée. Mais la trajectoire est connue. 70% de probabilité cumulée des scénarios négatifs. Les précédents africains ne mentent pas. Ils préviennent."
+  },
+  { type: 'heading', text: "V. Le prix du feu : le Congo réel, celui qu'on oublie" },
+  {
+    type: 'paragraph',
+    text: "Et puis il y a le prix. Entre 15 et 25 milliards de dollars sur deux à trois ans, estime-t-on. La RDC produit 76% du cobalt mondial. Ses ressources du sous-sol sont estimées à 24 000 milliards de dollars. Les accords stratégiques qui se nouent USA-RDC en décembre 2025, Orion-Glencore à 9 milliards, le Corridor Lobito à 2 milliards d'euros reposent sur l'hypothèse de stabilité. Quel investisseur signe un contrat avec un pays qui s'apprête à jeter ses institutions par la fenêtre ?"
+  },
+  {
+    type: 'paragraph',
+    text: "Le Cardinal Fridolin Ambongo pose la question qui fait mal : « Comment peut-on dépenser autant d'énergie et d'argent pour changer la Constitution alors que la jeunesse est abandonnée ? » Il n'a pas tort. 72,3% de la population vit avec moins de 2,15 dollars par jour. 77% des Congolais estiment pourtant que la démocratie est le meilleur système. Seuls 9,5% ont « très grande confiance » dans le gouvernement. Le peuple n'est pas dupé. Il est simplement silencieux, éloigné des arènes où se décident ses destins."
+  },
+  {
+    type: 'paragraph',
+    text: "La fracture traverse même l'Église. La CENCO qualifie l'initiative de « hasardeuse » et mobilise 25 000 observateurs. Les Églises de Réveil soutiennent ouvertement le pouvoir. Le pays se divise sur des lignes politiques et spirituelles."
+  },
+  {
+    type: 'paragraph',
+    text: "Le cadre juridique continental est pourtant clair. La Charte africaine de la démocratie, ratifiée par la RDC en 2008, qualifie toute révision antidémocratique de « changement anticonstitutionnel de gouvernement ». La Cour africaine des droits de l'homme, dans son arrêt sur le Bénin en 2020, a invalidé une révision pour défaut de consensus national. L'Afrique elle-même, par ses propres traités, dit non."
+  },
+  {
+    type: 'paragraph',
+    text: "Le camp présidentiel dit : le peuple décidera. L'opposition répond : le peuple a déjà décidé, en 2006, à 84%. Les deux camps invoquent le même souverain. Mais l'un veut le consulter à nouveau ; l'autre estime qu'il a déjà parlé."
+  },
+  { type: 'heading', text: 'VI. Au nom de quel feu ?' },
+  {
+    type: 'paragraph',
+    text: "Entre les deux, le Congo. Le vrai. Celui des 72,3% qui survivent avec moins de 2 dollars par jour. Celui qui ne comprend pas pourquoi on dépense des milliards pour réécrire une loi qu'on n'a jamais appliquée, pendant que l'Est brûle."
+  },
+  {
+    type: 'paragraph',
+    text: "Voilà le cœur du problème. Ce n'est pas la Constitution qui est dépassée. C'est la classe politique qui n'a pas su faire fonctionner le cadre qu'elle avait hérité. Et au lieu de l'appliquer enfin, elle préfère le déchirer."
+  },
+  {
+    type: 'paragraph',
+    text: "Car ceux qui brûlent les Constitutions finissent toujours par découvrir que le feu ne s'arrête jamais aux articles qu'ils voulaient détruire. Il consume tout."
+  },
+  { type: 'signature', text: 'Guylain Tshibamba' }
+];
+
 // Default seed data (used only if files don't exist yet)
 const DEFAULT_ARTICLES = [
+  {
+    id: 'revision-constitution-rdc-2026',
+    title: 'Quand le fils déchire ce que le père avait refusé de légitimer',
+    date: '2026-06',
+    description: "La boîte de Pandore constitutionnelle s'entrouvre en RDC, entre référendum, articles 219 et 220, crise de confiance et précédent africain.",
+    author: 'Guylain Tshibamba',
+    icon: 'fa-newspaper',
+    link: '',
+    image: 'article-revision-constitution-rdc-cover.png',
+    pdf: '',
+    pdfName: '',
+    content: ARTICLE_REVISION_CONSTITUTION_CONTENT
+  },
   { id: '1', title: "L'importance de l'analyse stratégique en temps de crise", date: '2026-01', description: "Découvrez comment une veille stratégique adaptée permet de mieux anticiper les situations complexes.", icon: 'fa-newspaper', link: '', image: '', pdf: '', pdfName: '' },
   { id: '2', title: 'Les tendances de la communication de crise en 2026', date: '2025-12', description: "Les nouvelles approches et méthodologies qui transforment la gestion de crise contemporaine.", icon: 'fa-chart-line', link: '', image: '', pdf: '', pdfName: '' },
   { id: '3', title: 'QG Analysis accompagne un grand groupe industriel', date: '2025-11', description: "Retour sur notre accompagnement stratégique lors d'une restructuration majeure.", icon: 'fa-users', link: '', image: '', pdf: '', pdfName: '' }
@@ -46,8 +169,23 @@ function writeJson(file, data) {
   fs.renameSync(tmp, file);
 }
 
+function ensureArticles(file, articlesToEnsure) {
+  const articles = readJson(file, DEFAULT_ARTICLES);
+  let changed = false;
+
+  articlesToEnsure.slice().reverse().forEach((article) => {
+    if (!articles.some(a => a.id === article.id)) {
+      articles.unshift(article);
+      changed = true;
+    }
+  });
+
+  if (changed) writeJson(file, articles);
+  return articles;
+}
+
 // Initialise files
-readJson(ARTICLES_FILE, DEFAULT_ARTICLES);
+ensureArticles(ARTICLES_FILE, [DEFAULT_ARTICLES[0]]);
 readJson(RAPPORTS_FILE, []);
 
 // ============ EXPRESS APP ============
@@ -168,11 +306,13 @@ app.post('/api/admin/articles', requireAuth, (req, res) => {
     title: String(data.title),
     date: String(data.date),
     description: String(data.description),
+    author: data.author || '',
     icon: data.icon || 'fa-newspaper',
     link: data.link || '',
     image: data.image || '',
     pdf: data.pdf || '',
-    pdfName: data.pdfName || ''
+    pdfName: data.pdfName || '',
+    content: Array.isArray(data.content) ? data.content : []
   };
   articles.unshift(article);
   writeJson(ARTICLES_FILE, articles);
@@ -189,11 +329,13 @@ app.put('/api/admin/articles/:id', requireAuth, (req, res) => {
     title: data.title != null ? String(data.title) : articles[idx].title,
     date: data.date != null ? String(data.date) : articles[idx].date,
     description: data.description != null ? String(data.description) : articles[idx].description,
+    author: data.author != null ? String(data.author) : articles[idx].author,
     icon: data.icon != null ? data.icon : articles[idx].icon,
     link: data.link != null ? data.link : articles[idx].link,
     image: data.image != null ? data.image : articles[idx].image,
     pdf: data.pdf != null ? data.pdf : articles[idx].pdf,
-    pdfName: data.pdfName != null ? data.pdfName : articles[idx].pdfName
+    pdfName: data.pdfName != null ? data.pdfName : articles[idx].pdfName,
+    content: Array.isArray(data.content) ? data.content : (articles[idx].content || [])
   };
   writeJson(ARTICLES_FILE, articles);
   res.json(articles[idx]);

@@ -635,7 +635,7 @@
                 }
                 grid.innerHTML = articles.map(function(a) {
                     var linkHref;
-                    if (a.pdf) {
+                    if (a.pdf || (a.content && a.content.length)) {
                         linkHref = 'viewer.html?type=article&id=' + encodeURIComponent(a.id);
                     } else if (a.link) {
                         linkHref = a.link;
