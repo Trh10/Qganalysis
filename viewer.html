@@ -438,7 +438,7 @@
             }
             function normalizeContentId(value) {
                 var clean = (value || '').trim();
-                var numericPrefix = clean.match(/^\d+/);
+                var numericPrefix = clean.match(/^(\d+)(?=[?&#\s]|$)/);
                 return numericPrefix ? numericPrefix[0] : clean;
             }
             function hasArticleContent(item) {
