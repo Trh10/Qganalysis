@@ -206,12 +206,25 @@ app.use(session({
 }));
 
 // ============ MULTER (file upload) ============
+function buildUploadFilename(originalname, mimetype) {
+  const original = originalname || 'file';
+  let ext = path.extname(original).toLowerCase();
+  if (!ext) {
+    if (mimetype === 'application/pdf') ext = '.pdf';
+    else if (mimetype === 'image/jpeg') ext = '.jpg';
+    else if (mimetype && mimetype.startsWith('image/')) ext = '.' + mimetype.split('/')[1];
+  }
+  const base = path.basename(original, path.extname(original))
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .slice(0, 50);
+  const stamp = Date.now() + '-' + crypto.randomBytes(4).toString('hex');
+  return stamp + '-' + base + ext;
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) { cb(null, UPLOADS_DIR); },
   filename: function (req, file, cb) {
-    const safe = (file.originalname || 'file').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 60);
-    const stamp = Date.now() + '-' + crypto.randomBytes(4).toString('hex');
-    cb(null, stamp + '-' + safe);
+    cb(null, buildUploadFilename(file.originalname, file.mimetype));
   }
 });
 const upload = multer({
@@ -397,8 +410,44 @@ app.delete('/api/admin/rapports/:id', requireAuth, (req, res) => {
 });
 
 // ============ STATIC FILES ============
-// Uploaded files served from the data volume
-app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d' }));
+const UPLOAD_MIME_TYPES = {
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif'
+};
+
+function isPdfFile(filePath) {
+  if (path.extname(filePath).toLowerCase() === '.pdf') return true;
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(4);
+    fs.readSync(fd, buf, 0, 4, 0);
+    fs.closeSync(fd);
+    return buf.toString() === '%PDF';
+  } catch (e) {
+    return false;
+  }
+}
+
+app.get('/uploads/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filePath = path.join(UPLOADS_DIR, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Fichier introuvable' });
+
+  const ext = path.extname(filename).toLowerCase();
+  let contentType = UPLOAD_MIME_TYPES[ext];
+  if (!contentType && isPdfFile(filePath)) contentType = 'application/pdf';
+  if (!contentType) contentType = 'application/octet-stream';
+
+  res.setHeader('Content-Type', contentType);
+  if (contentType === 'application/pdf') {
+    res.setHeader('Content-Disposition', 'inline');
+  }
+  res.sendFile(filePath);
+});
 // Site files
 app.use(express.static(__dirname, { extensions: ['html'] }));
 
