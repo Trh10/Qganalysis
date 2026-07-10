@@ -445,6 +445,8 @@ app.get('/uploads/:filename', (req, res) => {
   res.setHeader('Content-Type', contentType);
   if (contentType === 'application/pdf') {
     res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=604800');
   }
   res.sendFile(filePath);
 });

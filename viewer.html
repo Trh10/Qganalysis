@@ -211,6 +211,10 @@
             margin: 0;
             font-size: 0.92rem;
         }
+        .pdf-loading small {
+            color: #8a8fb0;
+            font-size: 0.78rem;
+        }
         .pdf-fallback {
             display: none;
             padding: 28px;
@@ -331,6 +335,35 @@
             border: 1px solid rgba(255,255,255,0.1);
             font-family: 'Poppins', sans-serif;
         }
+        .pdf-size-note {
+            color: #8a8fb0;
+            font-size: 0.84rem;
+            line-height: 1.55;
+            margin: 0 0 14px;
+        }
+        .desktop-pdf-card {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .load-pdf-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: #dc002e;
+            color: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            box-shadow: 0 12px 30px -8px rgba(220,0,46,0.55);
+            margin-bottom: 10px;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+        }
+        .load-pdf-btn:hover { background: #b50025; }
         .pdf-shell.fullscreen {
             position: fixed;
             inset: 0;
@@ -510,16 +543,149 @@
             }
 
             var endpoint = type === 'rapport' ? '/api/rapports/' : '/api/articles/';
+            var LARGE_PDF_BYTES = 20 * 1024 * 1024;
+
             fetch(endpoint + encodeURIComponent(id)).then(function(r) {
                 if (!r.ok) throw new Error('not found');
                 return r.json();
             }).then(function(item) {
-                renderItem(type, item);
+                if (!item.pdf) {
+                    renderItem(type, item, 0);
+                    return;
+                }
+                fetch(item.pdf, { method: 'HEAD', credentials: 'same-origin' }).then(function(headRes) {
+                    var size = parseInt(headRes.headers.get('content-length') || '0', 10);
+                    renderItem(type, item, isNaN(size) ? 0 : size);
+                }).catch(function() {
+                    renderItem(type, item, 0);
+                });
             }).catch(function() {
                 root.innerHTML = '<div class="error-box"><i class="fas fa-triangle-exclamation"></i><h3>Contenu introuvable</h3><p>Cet article ou rapport n\'existe plus.</p></div>';
             });
 
-            function renderItem(type, item) {
+            function formatFileSize(bytes) {
+                if (!bytes || bytes <= 0) return '';
+                if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + ' Ko';
+                return (bytes / (1024 * 1024)).toFixed(1).replace('.0', '') + ' Mo';
+            }
+
+            function setupDownloadBtn(item, pdfFileName) {
+                var dl = document.getElementById('downloadBtn');
+                dl.href = item.pdf;
+                dl.style.display = 'inline-flex';
+                dl.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var link = document.createElement('a');
+                    link.href = item.pdf;
+                    link.download = pdfFileName;
+                    link.rel = 'noopener';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                });
+            }
+
+            function buildPdfCardHtml(item, pdfFileName, sizeBytes, cardClass, preferNewTab) {
+                var previewInner = item.image
+                    ? '<img src="' + item.image + '" alt="' + escapeHtml(item.title) + '">'
+                    : '<div class="mobile-pdf-preview-placeholder"><i class="fas fa-file-pdf"></i><p>Document PDF</p></div>';
+                var sizeLabel = formatFileSize(sizeBytes);
+                var sizeNote = sizeLabel
+                    ? '<p class="pdf-size-note">Document volumineux (' + sizeLabel + '). Le chargement peut prendre 1 à 2 minutes selon votre connexion.</p>'
+                    : '<p class="pdf-size-note">Document volumineux. Le chargement peut prendre 1 à 2 minutes selon votre connexion.</p>';
+                var actionHtml = preferNewTab
+                    ? '<a class="mobile-cta-primary" href="' + item.pdf + '" target="_blank" rel="noopener"><i class="fas fa-book-open"></i> Lire le document</a>'
+                    : '<button type="button" class="load-pdf-btn" id="loadPdfInlineBtn"><i class="fas fa-book-open"></i> Afficher le PDF</button>' +
+                      '<a class="mobile-cta-secondary" href="' + item.pdf + '" target="_blank" rel="noopener"><i class="fas fa-up-right-from-square"></i> Ouvrir dans un nouvel onglet</a>';
+                return '<div class="mobile-pdf-card ' + cardClass + '" id="pdfCard">' +
+                    '<div class="mobile-pdf-preview">' + previewInner + '</div>' +
+                    '<div class="mobile-pdf-info">' +
+                        '<div class="mobile-pdf-filename"><i class="fas fa-file-pdf"></i><span>' + escapeHtml(pdfFileName) + '</span></div>' +
+                        sizeNote +
+                        actionHtml +
+                    '</div>' +
+                '</div>' +
+                '<div id="pdfInlineHost"></div>';
+            }
+
+            function buildPdfIframeHtml(item, pdfFileName, sizeBytes) {
+                var sizeLabel = formatFileSize(sizeBytes);
+                var loadingHint = sizeLabel
+                    ? '<small>Document ' + sizeLabel + ' — merci de patienter</small>'
+                    : '';
+                return '<div class="pdf-shell" id="pdfShell">' +
+                    '<div class="pdf-toolbar">' +
+                        '<div class="pdf-toolbar-left">' +
+                            '<i class="fas fa-file-pdf"></i>' +
+                            '<span class="toolbar-filename">' + escapeHtml(pdfFileName) + '</span>' +
+                        '</div>' +
+                        '<div class="pdf-toolbar-right">' +
+                            '<button class="pdf-tool-btn" id="fullscreenBtn" title="Plein écran"><i class="fas fa-expand"></i></button>' +
+                            '<a class="pdf-tool-btn" href="' + item.pdf + '" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet"><i class="fas fa-up-right-from-square"></i></a>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="pdf-viewer-wrap">' +
+                        '<div class="pdf-loading" id="pdfLoading">' +
+                            '<i class="fas fa-spinner fa-spin"></i>' +
+                            '<p>Chargement du document PDF...</p>' +
+                            loadingHint +
+                        '</div>' +
+                        '<iframe class="pdf-frame" id="pdfFrame" src="' + item.pdf + '#toolbar=1&navpanes=0&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
+                        '<div class="pdf-fallback" id="pdfFallback">' +
+                            '<p>Le document est volumineux ou ne peut pas s\'afficher ici.</p>' +
+                            '<p><a href="' + item.pdf + '" target="_blank" rel="noopener">Ouvrir le PDF dans un nouvel onglet</a></p>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            function mountPdfIframe(item, pdfFileName, sizeBytes, hostEl) {
+                hostEl.innerHTML = buildPdfIframeHtml(item, pdfFileName, sizeBytes);
+                setupFullscreen();
+                var pdfFrame = document.getElementById('pdfFrame');
+                var pdfLoading = document.getElementById('pdfLoading');
+                var pdfFallback = document.getElementById('pdfFallback');
+                if (!pdfFrame) return;
+                var hideLoading = function() {
+                    if (pdfLoading) pdfLoading.classList.add('hidden');
+                };
+                pdfFrame.addEventListener('load', hideLoading);
+                setTimeout(hideLoading, 20000);
+                setTimeout(function() {
+                    if (pdfLoading && !pdfLoading.classList.contains('hidden') && pdfFallback) {
+                        pdfFallback.classList.add('show');
+                    }
+                }, 45000);
+            }
+
+            function setupFullscreen() {
+                var fsBtn = document.getElementById('fullscreenBtn');
+                if (!fsBtn) return;
+                fsBtn.addEventListener('click', function() {
+                    var shell = document.getElementById('pdfShell');
+                    shell.classList.toggle('fullscreen');
+                    var icon = fsBtn.querySelector('i');
+                    if (shell.classList.contains('fullscreen')) {
+                        icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
+                        document.body.style.overflow = '';
+                    }
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key !== 'Escape') return;
+                    var shell = document.getElementById('pdfShell');
+                    if (shell && shell.classList.contains('fullscreen')) {
+                        shell.classList.remove('fullscreen');
+                        var ic = fsBtn.querySelector('i');
+                        ic.classList.remove('fa-compress'); ic.classList.add('fa-expand');
+                        document.body.style.overflow = '';
+                    }
+                });
+            }
+
+            function renderItem(type, item, pdfSizeBytes) {
                 document.title = item.title + ' – QG Analysis';
 
                 var freqLabels = { semaine: 'Hebdomadaire', mois: 'Mensuel', autre: 'Autre' };
@@ -544,58 +710,13 @@
                 var bodyHtml;
                 if (item.pdf) {
                     var pdfFileName = item.pdfName || 'document.pdf';
-                    var dl = document.getElementById('downloadBtn');
-                    dl.href = item.pdf;
-                    dl.style.display = 'inline-flex';
-                    dl.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        var link = document.createElement('a');
-                        link.href = item.pdf;
-                        link.download = pdfFileName;
-                        link.rel = 'noopener';
-                        document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                    });
+                    setupDownloadBtn(item, pdfFileName);
+                    var usePdfCard = isMobile || pdfSizeBytes > LARGE_PDF_BYTES;
 
-                    if (isMobile) {
-                        var previewInner = item.image
-                            ? '<img src="' + item.image + '" alt="' + escapeHtml(item.title) + '">'
-                            : '<div class="mobile-pdf-preview-placeholder"><i class="fas fa-file-pdf"></i><p>Document PDF</p></div>';
-                        bodyHtml =
-                            '<div class="mobile-pdf-card">' +
-                                '<div class="mobile-pdf-preview">' + previewInner + '</div>' +
-                                '<div class="mobile-pdf-info">' +
-                                    '<div class="mobile-pdf-filename"><i class="fas fa-file-pdf"></i><span>' + escapeHtml(pdfFileName) + '</span></div>' +
-                                    '<a class="mobile-cta-primary" href="' + item.pdf + '" target="_blank" rel="noopener"><i class="fas fa-book-open"></i> Lire le document</a>' +
-                                    '<a class="mobile-cta-secondary" href="' + item.pdf + '" download="' + escapeHtml(pdfFileName) + '"><i class="fas fa-download"></i> Télécharger (' + 'PDF)</a>' +
-                                '</div>' +
-                            '</div>';
+                    if (usePdfCard) {
+                        bodyHtml = buildPdfCardHtml(item, pdfFileName, pdfSizeBytes, isMobile ? '' : 'desktop-pdf-card', isMobile);
                     } else {
-                        bodyHtml =
-                            '<div class="pdf-shell" id="pdfShell">' +
-                                '<div class="pdf-toolbar">' +
-                                    '<div class="pdf-toolbar-left">' +
-                                        '<i class="fas fa-file-pdf"></i>' +
-                                        '<span class="toolbar-filename">' + escapeHtml(pdfFileName) + '</span>' +
-                                    '</div>' +
-                                    '<div class="pdf-toolbar-right">' +
-                                        '<button class="pdf-tool-btn" id="fullscreenBtn" title="Plein écran"><i class="fas fa-expand"></i></button>' +
-                                        '<a class="pdf-tool-btn" href="' + item.pdf + '" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet"><i class="fas fa-up-right-from-square"></i></a>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="pdf-viewer-wrap">' +
-                                    '<div class="pdf-loading" id="pdfLoading">' +
-                                        '<i class="fas fa-spinner fa-spin"></i>' +
-                                        '<p>Chargement du document PDF...</p>' +
-                                    '</div>' +
-                                    '<iframe class="pdf-frame" id="pdfFrame" src="' + item.pdf + '#toolbar=1&navpanes=0&view=FitH" title="' + escapeHtml(item.title) + '"></iframe>' +
-                                    '<div class="pdf-fallback" id="pdfFallback">' +
-                                        '<p>Le document est volumineux ou ne peut pas s\'afficher ici.</p>' +
-                                        '<p><a href="' + item.pdf + '" target="_blank" rel="noopener">Ouvrir le PDF dans un nouvel onglet</a></p>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>';
+                        bodyHtml = buildPdfIframeHtml(item, pdfFileName, pdfSizeBytes);
                     }
                 } else if (type === 'article' && hasArticleContent(item)) {
                     bodyHtml = renderArticleBody(item);
@@ -609,47 +730,34 @@
 
                 root.innerHTML = heroHtml + '<div class="viewer-content">' + bodyHtml + '</div>';
 
-                var pdfFrame = document.getElementById('pdfFrame');
-                var pdfLoading = document.getElementById('pdfLoading');
-                var pdfFallback = document.getElementById('pdfFallback');
-                if (pdfFrame) {
-                    var hideLoading = function() {
-                        if (pdfLoading) pdfLoading.classList.add('hidden');
-                    };
-                    pdfFrame.addEventListener('load', hideLoading);
-                    setTimeout(hideLoading, 12000);
-                    setTimeout(function() {
-                        if (pdfLoading && !pdfLoading.classList.contains('hidden') && pdfFallback) {
-                            pdfFallback.classList.add('show');
-                        }
-                    }, 20000);
-                }
-
-                var fsBtn = document.getElementById('fullscreenBtn');
-                if (fsBtn) {
-                    fsBtn.addEventListener('click', function() {
-                        var shell = document.getElementById('pdfShell');
-                        shell.classList.toggle('fullscreen');
-                        var icon = fsBtn.querySelector('i');
-                        if (shell.classList.contains('fullscreen')) {
-                            icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
-                            document.body.style.overflow = 'hidden';
-                        } else {
-                            icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
-                            document.body.style.overflow = '';
-                        }
-                    });
-                    document.addEventListener('keydown', function(e) {
-                        if (e.key === 'Escape') {
-                            var shell = document.getElementById('pdfShell');
-                            if (shell && shell.classList.contains('fullscreen')) {
-                                shell.classList.remove('fullscreen');
-                                var ic = fsBtn.querySelector('i');
-                                ic.classList.remove('fa-compress'); ic.classList.add('fa-expand');
-                                document.body.style.overflow = '';
+                if (item.pdf && (isMobile || pdfSizeBytes > LARGE_PDF_BYTES)) {
+                    var loadBtn = document.getElementById('loadPdfInlineBtn');
+                    var inlineHost = document.getElementById('pdfInlineHost');
+                    var pdfCard = document.getElementById('pdfCard');
+                    if (loadBtn && inlineHost) {
+                        loadBtn.addEventListener('click', function() {
+                            if (pdfCard) pdfCard.style.display = 'none';
+                            mountPdfIframe(item, item.pdfName || 'document.pdf', pdfSizeBytes, inlineHost);
+                            inlineHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        });
+                    }
+                } else if (item.pdf) {
+                    setupFullscreen();
+                    var pdfFrame = document.getElementById('pdfFrame');
+                    var pdfLoading = document.getElementById('pdfLoading');
+                    var pdfFallback = document.getElementById('pdfFallback');
+                    if (pdfFrame) {
+                        var hideLoading = function() {
+                            if (pdfLoading) pdfLoading.classList.add('hidden');
+                        };
+                        pdfFrame.addEventListener('load', hideLoading);
+                        setTimeout(hideLoading, 12000);
+                        setTimeout(function() {
+                            if (pdfLoading && !pdfLoading.classList.contains('hidden') && pdfFallback) {
+                                pdfFallback.classList.add('show');
                             }
-                        }
-                    });
+                        }, 20000);
+                    }
                 }
             }
         })();
